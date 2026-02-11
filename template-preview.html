@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>模板预览 - XootGo AIGC</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-logo">
+      <a href="#" class="page-back" id="backLink" style="margin-bottom:0;color:var(--gray-600);">← 返回</a>
+    </div>
+    <h1 class="topbar-title" style="font-size:1rem;">模板预览</h1>
+    <div class="topbar-actions"></div>
+  </header>
+
+  <div class="page-header">
+    <p class="page-title" id="previewTitle">3D 环绕慢动作</p>
+    <p class="page-header-desc" id="previewDesc" style="font-size:0.875rem;color:var(--gray-500);margin-top:4px;">多机位环绕视角，电影级慢动作效果，适合精彩瞬间与进球回放。</p>
+  </div>
+
+  <div class="template-page-wrap">
+    <div class="template-cover-section" id="referenceImageSection">
+      <div class="template-cover-label">已选参考图</div>
+      <div class="template-cover-preview preview-3d" id="referenceImagePreview"></div>
+    </div>
+    <div class="template-cover-section">
+      <div class="template-cover-label">效果预览</div>
+      <div class="template-cover-preview preview-3d" id="previewThumb"></div>
+    </div>
+    <p style="font-size:0.875rem;color:var(--gray-500);margin-bottom:24px;">预览效果，点击生成片段即可快速成片。</p>
+  </div>
+
+  <div class="footer-cta">
+    <a href="#" class="btn btn-primary btn-block" id="generateBtn">生成片段</a>
+  </div>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <a href="index.html" class="nav-item"><span class="nav-item-icon">⌂</span><span>Home</span></a>
+    <a href="history.html" class="nav-item"><span class="nav-item-icon">▢</span><span>Gallery</span></a>
+    <a href="#" class="nav-item-camera" aria-label="拍摄">📷</a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">✂</span><span>Create</span></a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">👤</span><span>Account</span></a>
+  </nav>
+
+  <script>
+    (function() {
+      var SCENE_LABELS = {
+        basketball: { free_throw: { name: '罚球', desc: '罚球瞬间，专注出手一刻' }, field_goal: { name: '命中', desc: '两分命中精彩镜头' }, three_pointer: { name: '三分', desc: '三分线外命中高光' }, dunk: { name: '扣篮', desc: '扣篮瞬间，爆发力与美感' } },
+        football: { dribble: { name: '盘带过人', desc: '盘带突破过人精彩片段' }, goal: { name: '射门进球', desc: '射门与进球瞬间' }, set_piece_cross: { name: '定位球传中', desc: '定位球、传中与配合' } }
+      };
+      var sportNames = { basketball: '篮球', football: '足球' };
+      var params = new URLSearchParams(location.search);
+      var template = params.get('template') || '';
+      var videoId = params.get('videoId') || '';
+      var frameTs = params.get('frameTs') || '';
+      if (!template || template.indexOf('_') === -1) {
+        try { template = sessionStorage.getItem('aigc_template') || 'basketball_free_throw'; } catch (e) { template = 'basketball_free_throw'; }
+      }
+      var parts = template.split('_');
+      var sport = parts[0] || 'basketball';
+      var scene = parts.slice(1).join('_') || (sport === 'basketball' ? 'free_throw' : 'dribble');
+      var sceneData = (SCENE_LABELS[sport] && SCENE_LABELS[sport][scene]) ? SCENE_LABELS[sport][scene] : { name: scene, desc: '' };
+      var title = (sportNames[sport] || sport) + ' · ' + sceneData.name;
+      var desc = sceneData.desc || '';
+
+      var refImage = null;
+      try { refImage = sessionStorage.getItem('aigc_reference_image'); } catch (e) {}
+      var refPreview = document.getElementById('referenceImagePreview');
+      if (refImage) {
+        refPreview.style.backgroundImage = "url('" + refImage.replace(/'/g, "\\'") + "')";
+        refPreview.style.backgroundSize = 'cover';
+      } else {
+        refPreview.style.backgroundImage = "url('assets/result-preview-3d.png')";
+      }
+
+      document.getElementById('previewTitle').textContent = title;
+      document.getElementById('previewDesc').textContent = desc;
+      var previewThumbUrl = sport === 'football' ? 'assets/cover-football.png' : 'assets/result-preview-3d.png';
+      document.getElementById('previewThumb').style.backgroundImage = "url('" + previewThumbUrl + "')";
+      document.getElementById('previewThumb').className = 'template-cover-preview preview-3d';
+      document.getElementById('backLink').href = videoId
+        ? 'pick-frame.html?videoId=' + encodeURIComponent(videoId) + '&sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene)
+        : 'select-video.html?sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+      var generateBtn = document.getElementById('generateBtn');
+      var genUrl = 'generating.html?template=' + encodeURIComponent(template) + '&from=preview';
+      if (videoId) genUrl += '&videoId=' + encodeURIComponent(videoId);
+      if (frameTs) genUrl += '&frameTs=' + encodeURIComponent(frameTs);
+      generateBtn.href = genUrl;
+      try { sessionStorage.setItem('aigc_template', template); sessionStorage.setItem('aigc_sport', sport); sessionStorage.setItem('aigc_scene', scene); } catch (e) {}
+      document.title = title + ' - 模板预览 - XootGo AIGC';
+    })();
+  </script>
+</body>
+</html>

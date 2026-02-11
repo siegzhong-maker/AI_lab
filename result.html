@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>分析任务结果 - XootGo AIGC</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-logo">
+      <a href="generating.html" class="page-back" style="margin-bottom:0;color:var(--gray-600);">← 返回</a>
+    </div>
+    <h1 class="topbar-title" style="font-size:1rem;">任务详情</h1>
+    <div class="topbar-actions"></div>
+  </header>
+
+  <div class="page-header">
+    <p class="page-title">分析任务结果</p>
+    <p style="font-size:0.875rem;color:var(--gray-500);margin-top:4px;">本任务成片预览</p>
+  </div>
+
+  <div class="result-wrap">
+    <div class="result-task-info">
+      <div class="result-task-name" id="resultTaskName">训练片段_01 - 3D 环绕慢动作</div>
+      <div class="result-task-meta" id="resultTaskMeta">
+        <span class="result-task-duration" id="resultTaskDuration">源视频 00:45</span>
+      </div>
+      <div class="result-task-row">
+        <span class="result-task-status" id="resultTaskStatus">已完成</span>
+        <span class="result-task-time-submit" id="resultTaskTimeSubmit">提交于 2025-02-10 10:25</span>
+        <span class="result-task-time-done" id="resultTaskTimeDone">完成于 2025-02-10 10:30</span>
+      </div>
+    </div>
+    <div class="result-player result-player-preview-bg" title="成片预览">
+    </div>
+    <div class="result-meta">
+      <div class="result-style" id="resultStyle">3D 环绕慢动作</div>
+      <div class="result-desc" id="resultDesc">已生成 3D 环绕慢动作成片，支持下载与分享。</div>
+    </div>
+    <div class="result-actions">
+      <button type="button" class="btn btn-primary" id="downloadBtn">下载</button>
+      <button type="button" class="btn btn-secondary" id="shareBtn">分享</button>
+    </div>
+    <a href="history.html" class="result-history-link">查看全部历史</a>
+  </div>
+
+  <div class="share-overlay" id="shareOverlay" aria-hidden="true">
+    <div class="share-overlay-backdrop" id="shareOverlayBackdrop"></div>
+    <div class="share-overlay-panel">
+      <div class="share-overlay-title">分享到</div>
+      <div class="share-overlay-actions">
+        <button type="button" class="share-overlay-row share-overlay-btn" id="shareCopyLink">
+          <span class="share-overlay-icon" aria-hidden="true">🔗</span>
+          <span class="share-overlay-label">复制链接</span>
+        </button>
+        <a href="#" class="share-overlay-row" id="shareFacebook" target="_blank" rel="noopener">
+          <span class="share-overlay-icon" aria-hidden="true">f</span>
+          <span class="share-overlay-label">Facebook</span>
+        </a>
+        <a href="#" class="share-overlay-row" id="shareTwitter" target="_blank" rel="noopener">
+          <span class="share-overlay-icon" aria-hidden="true">𝕏</span>
+          <span class="share-overlay-label">Twitter / X</span>
+        </a>
+      </div>
+      <button type="button" class="share-overlay-cancel" id="shareOverlayClose">取消</button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var params = new URLSearchParams(location.search);
+      var id = params.get('id') || '1';
+      var SCENE_LABELS = { basketball: { free_throw: '罚球', field_goal: '命中', three_pointer: '三分', dunk: '扣篮' }, football: { dribble: '盘带过人', goal: '射门进球', set_piece_cross: '定位球传中' } };
+      var sportNames = { basketball: '篮球', football: '足球' };
+      function templateToDisplayName(template) {
+        if (!template || template.indexOf('_') === -1) return template || '成片';
+        var p = template.split('_');
+        var sport = p[0];
+        var scene = p.slice(1).join('_');
+        return (sportNames[sport] || sport) + ' · ' + ((SCENE_LABELS[sport] && SCENE_LABELS[sport][scene]) ? SCENE_LABELS[sport][scene] : scene);
+      }
+      var taskData = {
+        '1': { videoName: '赛事录制 02-10', duration: '01:00:00', templateKey: 'basketball_free_throw', submitAt: '2025-02-10 10:25', doneAt: '2025-02-10 10:30' },
+        '2': { videoName: '赛事录制 02-09', duration: '01:20', templateKey: 'football_goal', submitAt: '2025-02-09 15:10', doneAt: '2025-02-09 15:20' },
+        '3': { videoName: '赛事录制 02-08', duration: '00:58', templateKey: 'basketball_three_pointer', submitAt: '2025-02-08 09:05', doneAt: '2025-02-08 09:15' },
+        '4': { videoName: '赛事录制 02-07', duration: '01:00', templateKey: 'football_dribble', submitAt: '2025-02-07 18:30', doneAt: '2025-02-07 18:40' }
+      };
+      var t = taskData[id] || taskData['1'];
+      var template = t.templateKey || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('aigc_template') : null) || 'basketball_free_throw';
+      var styleName = templateToDisplayName(template);
+      var desc = '已生成「' + styleName + '」成片，支持下载与分享。';
+      var taskEl = document.getElementById('resultTaskName');
+      var styleEl = document.getElementById('resultStyle');
+      var descEl = document.getElementById('resultDesc');
+      var durationEl = document.getElementById('resultTaskDuration');
+      var submitEl = document.getElementById('resultTaskTimeSubmit');
+      var doneEl = document.getElementById('resultTaskTimeDone');
+      if (taskEl) taskEl.textContent = t.videoName + ' - ' + styleName;
+      if (styleEl) styleEl.textContent = styleName;
+      if (descEl) descEl.textContent = desc;
+      if (durationEl) durationEl.textContent = '源视频 ' + t.duration;
+      if (submitEl) submitEl.textContent = '提交于 ' + t.submitAt;
+      if (doneEl) doneEl.textContent = '完成于 ' + t.doneAt;
+
+      var isFootball = template.indexOf('football_') === 0;
+      var downloadAsset = isFootball ? 'assets/cover-football.png' : 'assets/result-preview-3d.png';
+      var downloadName = 'XootGo-' + styleName.replace(/\s*·\s*/, '-') + '.png';
+      var thumbBg = isFootball ? 'assets/cover-football.png' : 'assets/result-preview-3d.png';
+      var player = document.querySelector('.result-player');
+      if (player) player.style.backgroundImage = 'url("' + thumbBg + '")';
+
+      document.getElementById('downloadBtn').addEventListener('click', function() {
+        var a = document.createElement('a');
+        a.href = downloadAsset;
+        a.download = downloadName;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      });
+
+      var shareUrl = location.href;
+      var shareTitle = styleName + ' - XootGo AIGC';
+      var shareText = desc;
+
+      document.getElementById('shareBtn').addEventListener('click', function() {
+        openShareOverlay();
+      });
+
+      function openShareOverlay() {
+        var overlay = document.getElementById('shareOverlay');
+        overlay.classList.add('share-overlay-visible');
+        overlay.setAttribute('aria-hidden', 'false');
+        var fbUrl = 'https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(shareUrl);
+        var twUrl = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(shareUrl) + '&text=' + encodeURIComponent(shareTitle);
+        document.getElementById('shareFacebook').href = fbUrl;
+        document.getElementById('shareTwitter').href = twUrl;
+      }
+
+      function closeShareOverlay() {
+        var overlay = document.getElementById('shareOverlay');
+        overlay.classList.remove('share-overlay-visible');
+        overlay.setAttribute('aria-hidden', 'true');
+      }
+
+      document.getElementById('shareOverlayBackdrop').addEventListener('click', closeShareOverlay);
+      document.getElementById('shareOverlayClose').addEventListener('click', closeShareOverlay);
+
+      document.getElementById('shareCopyLink').addEventListener('click', function() {
+        var btn = document.getElementById('shareCopyLink');
+        var label = btn.querySelector('.share-overlay-label');
+        function showCopied() {
+          var t = label ? label.textContent : btn.textContent;
+          if (label) label.textContent = '已复制';
+          else btn.textContent = '已复制';
+          setTimeout(function() { if (label) label.textContent = t; else btn.textContent = t; }, 1500);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(shareUrl).then(showCopied);
+        } else {
+          var ta = document.createElement('textarea');
+          ta.value = shareUrl;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          try {
+            document.execCommand('copy');
+            showCopied();
+          } catch (e) {}
+          document.body.removeChild(ta);
+        }
+      });
+    })();
+  </script>
+  <nav class="bottom-nav" aria-label="主导航">
+    <a href="index.html" class="nav-item"><span class="nav-item-icon">⌂</span><span>Home</span></a>
+    <a href="history.html" class="nav-item"><span class="nav-item-icon">▢</span><span>Gallery</span></a>
+    <a href="#" class="nav-item-camera" aria-label="拍摄">📷</a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">✂</span><span>Create</span></a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">👤</span><span>Account</span></a>
+  </nav>
+</body>
+</html>

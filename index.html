@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>XootGo - 首页</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-logo">
+      <div class="topbar-logo-icon" aria-hidden="true"></div>
+    </div>
+    <h1 class="topbar-title">XootGo</h1>
+    <div class="topbar-actions">
+      <span class="topbar-actions-icon" aria-hidden="true" style="width:24px;height:24px;background:var(--gray-200);border-radius:6px;"></span>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- AIGC实验室 + banner (merged at top) -->
+    <section class="section aigc-lab-section">
+      <div class="section-header">
+        <h2 class="section-title">AIGC实验室</h2>
+        <div class="section-header-actions">
+          <a href="history.html" class="section-link-history">查看历史</a>
+        </div>
+      </div>
+      <p class="aigc-lab-desc">AI 成片 · 按篮球/足球场景选择模板</p>
+      <div class="carousel-wrap aigc-carousel">
+        <div class="carousel" id="aigcCarousel" role="region" aria-label="AIGC效果轮播">
+          <div class="carousel-item">
+            <a href="select-scene.html?sport=basketball" class="carousel-card bg-style-3d" data-sport="basketball">
+              <div class="carousel-card-title">篮球</div>
+              <div class="carousel-card-sub">罚球、命中、三分、扣篮</div>
+              <span class="carousel-card-cta">去体验 →</span>
+            </a>
+          </div>
+          <div class="carousel-item">
+            <a href="select-scene.html?sport=football" class="carousel-card bg-style-football" data-sport="football">
+              <div class="carousel-card-title">足球</div>
+              <div class="carousel-card-sub">盘带过人、射门进球、定位球传中</div>
+              <span class="carousel-card-cta">去体验 →</span>
+            </a>
+          </div>
+        </div>
+        <div class="carousel-dots" id="aigcDots" aria-hidden="true">
+          <span class="carousel-dot active"></span>
+          <span class="carousel-dot"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main carousel -->
+    <div class="carousel-wrap">
+      <div class="carousel" id="mainCarousel" role="region" aria-label="主轮播">
+        <div class="carousel-item">
+          <div class="carousel-card bg-basketball-card">
+            <div class="carousel-card-title">App 4.0 Now Live</div>
+            <div class="carousel-card-sub">— Welcome!</div>
+          </div>
+        </div>
+        <div class="carousel-item">
+          <div class="carousel-card bg-basketball-card">
+            <div class="carousel-card-title">新功能</div>
+            <div class="carousel-card-sub">探索更多</div>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-dots" aria-hidden="true">
+        <span class="carousel-dot active"></span>
+        <span class="carousel-dot"></span>
+      </div>
+    </div>
+
+    <!-- Device Connections -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Device Connections</h2>
+        <a href="#" class="section-more">More</a>
+      </div>
+      <a href="#" class="card card-add bg-basketball-card">
+        <span class="card-add-icon">+</span>
+        <span class="card-add-label">Add Remote</span>
+      </a>
+    </section>
+
+    <!-- Basic Tutorial -->
+    <section class="section">
+      <div class="section-header">
+        <h2 class="section-title">Basic Tutorial</h2>
+        <a href="#" class="section-more">More</a>
+      </div>
+      <div class="tabs">
+        <button type="button" class="tab active">Chameleon</button>
+        <button type="button" class="tab">Go1</button>
+      </div>
+      <div class="tutorial-grid">
+        <a href="#" class="tutorial-card">
+          <div class="tutorial-card-thumb bg-tutorial-thumb"></div>
+          <div class="tutorial-card-title">Chameleon Opener</div>
+        </a>
+        <a href="#" class="tutorial-card">
+          <div class="tutorial-card-thumb bg-tutorial-thumb"></div>
+          <div class="tutorial-card-title">Bluetooth Connection</div>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <a href="index.html" class="nav-item active">
+      <span class="nav-item-icon">⌂</span>
+      <span>Home</span>
+    </a>
+    <a href="history.html" class="nav-item">
+      <span class="nav-item-icon">▢</span>
+      <span>Gallery</span>
+    </a>
+    <a href="#" class="nav-item-camera" aria-label="拍摄">📷</a>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">✂</span>
+      <span>Create</span>
+    </a>
+    <a href="#" class="nav-item">
+      <span class="nav-item-icon">👤</span>
+      <span>Account</span>
+    </a>
+  </nav>
+
+  <script>
+    (function() {
+      var carousel = document.getElementById('aigcCarousel');
+      var dots = document.getElementById('aigcDots');
+      if (carousel && dots) {
+        var dotEls = dots.querySelectorAll('.carousel-dot');
+        carousel.addEventListener('scroll', function() {
+          var index = Math.round(carousel.scrollLeft / (carousel.scrollWidth / 2));
+          index = Math.min(index, dotEls.length - 1);
+          dotEls.forEach(function(d, i) { d.classList.toggle('active', i === index); });
+        });
+      }
+      document.querySelectorAll('.aigc-carousel .carousel-card[data-sport]').forEach(function(a) {
+        a.addEventListener('click', function() {
+          try {
+            var sport = a.getAttribute('data-sport') || 'basketball';
+            sessionStorage.setItem('aigc_sport', sport);
+          } catch (e) {}
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

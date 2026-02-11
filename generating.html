@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>生成中 - XootGo AIGC</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-logo">
+      <a href="#" class="page-back" id="backLink" style="margin-bottom:0;color:var(--gray-600);">← 返回</a>
+    </div>
+    <h1 class="topbar-title" style="font-size:1rem;">生成中</h1>
+    <div class="topbar-actions"></div>
+  </header>
+
+  <div class="generating-wrap">
+    <div class="generating-circle" aria-hidden="true"></div>
+    <p class="generating-title">AI 正在生成您的成片…</p>
+    <p class="generating-sub">预计需要约 5 分钟，请耐心等待</p>
+    <p class="generating-time" id="countdown">预计还需 4 分 59 秒</p>
+    <a href="result.html" class="btn btn-primary" style="margin-bottom:16px;">查看成片</a>
+  </div>
+
+  <script>
+    (function() {
+      var totalSec = 5 * 60;
+      var remain = totalSec;
+      var el = document.getElementById('countdown');
+      function format(t) {
+        var m = Math.floor(t / 60);
+        var s = t % 60;
+        return '预计还需 ' + m + ' 分 ' + (s < 10 ? '0' : '') + s + ' 秒';
+      }
+      if (el) {
+        var timer = setInterval(function() {
+          remain--;
+          el.textContent = format(remain);
+          if (remain <= 0) {
+            clearInterval(timer);
+            el.textContent = '生成完成';
+          }
+        }, 1000);
+      }
+      var params = new URLSearchParams(location.search);
+      var template = params.get('template') || '';
+      var videoId = params.get('videoId') || '';
+      var frameTs = params.get('frameTs') || '';
+      var fromPreview = params.get('from') === 'preview';
+      if (!template && typeof sessionStorage !== 'undefined') template = sessionStorage.getItem('aigc_template') || '';
+      var sport = '';
+      var scene = '';
+      if (template && template.indexOf('_') !== -1) {
+        var parts = template.split('_');
+        sport = parts[0];
+        scene = parts.slice(1).join('_');
+      }
+      if (fromPreview && template) {
+        var backUrl = 'template-preview.html?template=' + encodeURIComponent(template);
+        if (videoId) backUrl += '&videoId=' + encodeURIComponent(videoId);
+        if (frameTs) backUrl += '&frameTs=' + encodeURIComponent(frameTs);
+        document.getElementById('backLink').href = backUrl;
+      } else if (sport && scene) {
+        document.getElementById('backLink').href = 'template-preview.html?template=' + encodeURIComponent(template);
+      } else {
+        document.getElementById('backLink').href = 'index.html';
+      }
+      if (template && typeof sessionStorage !== 'undefined') sessionStorage.setItem('aigc_template', template);
+      var refImage = null;
+      var storedVideoId = null;
+      var storedFrameTs = null;
+      try {
+        refImage = sessionStorage.getItem('aigc_reference_image');
+        storedVideoId = sessionStorage.getItem('aigc_video_id');
+        storedFrameTs = sessionStorage.getItem('aigc_frame_ts');
+      } catch (e) {}
+      window.__aigcSubmitPayload = {
+        referenceImage: refImage,
+        videoId: videoId || storedVideoId,
+        frameTs: frameTs || storedFrameTs,
+        template: template
+      };
+    })();
+  </script>
+  <nav class="bottom-nav" aria-label="主导航">
+    <a href="index.html" class="nav-item"><span class="nav-item-icon">⌂</span><span>Home</span></a>
+    <a href="history.html" class="nav-item"><span class="nav-item-icon">▢</span><span>Gallery</span></a>
+    <a href="#" class="nav-item-camera" aria-label="拍摄">📷</a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">✂</span><span>Create</span></a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">👤</span><span>Account</span></a>
+  </nav>
+</body>
+</html>

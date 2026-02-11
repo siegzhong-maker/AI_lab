@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>选择赛事视频 - XootGo AIGC</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-logo">
+      <a href="index.html" class="page-back" id="backLink" style="margin-bottom:0;color:var(--gray-600);">← 返回</a>
+    </div>
+    <h1 class="topbar-title" style="font-size:1rem;">选择赛事视频</h1>
+    <div class="topbar-actions"></div>
+  </header>
+
+  <div class="page-header">
+    <p class="page-title">选择赛事/录制视频</p>
+    <p style="font-size:0.875rem;color:var(--gray-500);margin-top:4px;">选择一段录制视频（约 1 小时），我们将从中选取一帧作为成片参考</p>
+  </div>
+
+  <div class="video-list">
+    <div class="video-item selected" data-video="1" role="button" tabindex="0" onclick="selectVideo(1)">
+      <div class="video-item-thumb bg-basketball-thumb"></div>
+      <div class="video-item-info">
+        <div class="video-item-title">赛事录制 02-10</div>
+        <div class="video-item-meta">01:00:00 · 1920×1080</div>
+      </div>
+      <div class="video-item-check"></div>
+    </div>
+    <div class="video-item" data-video="2" role="button" tabindex="0" onclick="selectVideo(2)">
+      <div class="video-item-thumb bg-basketball-thumb"></div>
+      <div class="video-item-info">
+        <div class="video-item-title">赛事录制 02-09</div>
+        <div class="video-item-meta">00:58:20 · 1920×1080</div>
+      </div>
+      <div class="video-item-check"></div>
+    </div>
+    <div class="video-item" data-video="3" role="button" tabindex="0" onclick="selectVideo(3)">
+      <div class="video-item-thumb bg-basketball-thumb"></div>
+      <div class="video-item-info">
+        <div class="video-item-title">赛事录制 02-08</div>
+        <div class="video-item-meta">01:02:15 · 1920×1080</div>
+      </div>
+      <div class="video-item-check"></div>
+    </div>
+  </div>
+
+  <div class="footer-cta">
+    <button type="button" class="btn btn-primary btn-block" id="nextBtn">下一步</button>
+  </div>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <a href="index.html" class="nav-item"><span class="nav-item-icon">⌂</span><span>Home</span></a>
+    <a href="history.html" class="nav-item"><span class="nav-item-icon">▢</span><span>Gallery</span></a>
+    <a href="#" class="nav-item-camera" aria-label="拍摄">📷</a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">✂</span><span>Create</span></a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">👤</span><span>Account</span></a>
+  </nav>
+  <script>
+    function selectVideo(id) {
+      document.querySelectorAll('.video-item').forEach(function(el) {
+        el.classList.toggle('selected', el.getAttribute('data-video') === String(id));
+      });
+    }
+    (function() {
+      var params = new URLSearchParams(location.search);
+      var sport = params.get('sport') || '';
+      var scene = params.get('scene') || '';
+      if ((!sport || !scene) && typeof sessionStorage !== 'undefined') {
+        var stored = sessionStorage.getItem('aigc_template') || '';
+        if (stored.indexOf('_') !== -1) {
+          var parts = stored.split('_');
+          sport = parts[0] || sessionStorage.getItem('aigc_sport') || 'basketball';
+          scene = parts.slice(1).join('_') || '';
+        } else {
+          sport = sessionStorage.getItem('aigc_sport') || 'basketball';
+          scene = sessionStorage.getItem('aigc_scene') || (sport === 'basketball' ? 'free_throw' : 'dribble');
+        }
+      }
+      var template = sport && scene ? sport + '_' + scene : '';
+      try {
+        if (template) {
+          sessionStorage.setItem('aigc_template', template);
+          sessionStorage.setItem('aigc_sport', sport);
+          sessionStorage.setItem('aigc_scene', scene);
+        }
+      } catch (e) {}
+      if (sport === 'football') {
+        document.body.classList.add('page-sport-football');
+      } else if (sport === 'basketball') {
+        document.body.classList.add('page-sport-basketball');
+      }
+      document.getElementById('backLink').href = 'select-scene.html?sport=' + encodeURIComponent(sport || 'basketball');
+      document.getElementById('nextBtn').addEventListener('click', function() {
+        var selected = document.querySelector('.video-item.selected');
+        var videoId = selected ? (selected.getAttribute('data-video') || '1') : '1';
+        if (template) {
+          window.location.href = 'pick-frame.html?videoId=' + encodeURIComponent(videoId) + '&sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+        } else {
+          window.location.href = 'index.html';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

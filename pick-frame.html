@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>确认一帧 - XootGo AIGC</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-logo">
+      <a href="#" id="backLink" class="page-back" style="margin-bottom:0;color:var(--gray-600);">← 返回</a>
+    </div>
+    <h1 class="topbar-title" style="font-size:1rem;">确认一帧</h1>
+    <div class="topbar-actions"></div>
+  </header>
+
+  <div class="page-header">
+    <p class="page-title">选择成片参考图</p>
+    <p style="font-size:0.875rem;color:var(--gray-500);margin-top:4px;">在时间轴上选择时刻，确认一帧作为成片参考图</p>
+  </div>
+
+  <div class="pick-frame-wrap">
+    <div class="pick-frame-preview-section">
+      <div class="pick-frame-label">当前帧（将作为参考图提交）</div>
+      <div class="pick-frame-preview-wrap">
+        <img id="framePreview" class="pick-frame-preview" src="assets/result-preview-3d.png" alt="当前帧预览">
+        <video id="frameVideo" class="pick-frame-video" style="display:none" muted playsinline></video>
+      </div>
+      <div class="pick-frame-time" id="frameTimeDisplay">00:00</div>
+    </div>
+    <div class="pick-frame-timeline-section">
+      <label class="pick-frame-timeline-label" for="frameScrubber">时间轴</label>
+      <div class="pick-frame-scrubber-wrap">
+        <div class="pick-frame-highlights" id="highlightMarkers" aria-hidden="true"></div>
+        <input type="range" id="frameScrubber" class="pick-frame-scrubber" min="0" max="3600" value="0" step="1">
+      </div>
+      <div class="pick-frame-timeline-hint">拖动选择时刻，支持端侧粗打点；可点击高光点快速定位</div>
+    </div>
+  </div>
+
+  <div class="footer-cta">
+    <button type="button" class="btn btn-primary btn-block" id="confirmFrameBtn">确认此帧</button>
+  </div>
+
+  <canvas id="frameCanvas" style="display:none"></canvas>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <a href="index.html" class="nav-item"><span class="nav-item-icon">⌂</span><span>Home</span></a>
+    <a href="history.html" class="nav-item"><span class="nav-item-icon">▢</span><span>Gallery</span></a>
+    <a href="#" class="nav-item-camera" aria-label="拍摄">📷</a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">✂</span><span>Create</span></a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">👤</span><span>Account</span></a>
+  </nav>
+
+  <script>
+    (function() {
+      var params = new URLSearchParams(location.search);
+      var videoId = params.get('videoId') || '1';
+      var sport = params.get('sport') || '';
+      var scene = params.get('scene') || '';
+      if (!sport || !scene) {
+        try {
+          sport = sessionStorage.getItem('aigc_sport') || 'basketball';
+          scene = sessionStorage.getItem('aigc_scene') || (sport === 'basketball' ? 'free_throw' : 'dribble');
+        } catch (e) {}
+      }
+      var template = sport && scene ? sport + '_' + scene : 'basketball_free_throw';
+
+      document.getElementById('backLink').href = 'select-video.html?sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+
+      function formatTime(sec) {
+        var m = Math.floor(Number(sec) / 60);
+        var s = Math.floor(Number(sec) % 60);
+        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+
+      var scrubber = document.getElementById('frameScrubber');
+      var timeDisplay = document.getElementById('frameTimeDisplay');
+      var framePreview = document.getElementById('framePreview');
+      var frameVideo = document.getElementById('frameVideo');
+      var maxTime = 3600;
+
+      var highlightTimes = [120, 340, 890, 1200, 2100, 2800];
+      var markersEl = document.getElementById('highlightMarkers');
+      highlightTimes.forEach(function(t) {
+        var dot = document.createElement('span');
+        dot.className = 'pick-frame-highlight-dot';
+        dot.setAttribute('data-time', String(t));
+        dot.style.left = (t / maxTime * 100) + '%';
+        dot.title = formatTime(t);
+        dot.addEventListener('click', function() {
+          var sec = Number(dot.getAttribute('data-time'));
+          scrubber.value = sec;
+          timeDisplay.textContent = formatTime(sec);
+          if (frameVideo.src && frameVideo.readyState >= 2) {
+            frameVideo.currentTime = sec;
+          }
+          scrubber.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        markersEl.appendChild(dot);
+      });
+
+      scrubber.addEventListener('input', function() {
+        var sec = scrubber.value;
+        timeDisplay.textContent = formatTime(sec);
+        if (frameVideo.src && frameVideo.readyState >= 2) {
+          frameVideo.currentTime = Number(sec);
+        }
+      });
+
+      frameVideo.addEventListener('seeked', function() {
+        drawVideoFrame();
+      });
+
+      function drawVideoFrame() {
+        var canvas = document.getElementById('frameCanvas');
+        var ctx = canvas.getContext('2d');
+        if (!frameVideo.videoWidth) return;
+        canvas.width = frameVideo.videoWidth;
+        canvas.height = frameVideo.videoHeight;
+        ctx.drawImage(frameVideo, 0, 0);
+      }
+
+      document.getElementById('confirmFrameBtn').addEventListener('click', function() {
+        var canvas = document.getElementById('frameCanvas');
+        var dataURL;
+        if (frameVideo.src && frameVideo.readyState >= 2) {
+          drawVideoFrame();
+          dataURL = canvas.toDataURL('image/jpeg', 0.9);
+        } else {
+          canvas.width = framePreview.naturalWidth || 640;
+          canvas.height = framePreview.naturalHeight || 360;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(framePreview, 0, 0);
+          dataURL = canvas.toDataURL('image/jpeg', 0.9);
+        }
+        var frameTs = scrubber.value;
+        try {
+          sessionStorage.setItem('aigc_reference_image', dataURL);
+          sessionStorage.setItem('aigc_frame_ts', frameTs);
+          sessionStorage.setItem('aigc_video_id', videoId);
+        } catch (e) {}
+        try { sessionStorage.setItem('aigc_template', template); } catch (e) {}
+        window.location.href = 'template-preview.html?template=' + encodeURIComponent(template) + '&videoId=' + encodeURIComponent(videoId) + '&frameTs=' + encodeURIComponent(frameTs);
+      });
+    })();
+  </script>
+</body>
+</html>

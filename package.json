@@ -1,0 +1,10 @@
+{
+  "name": "xootgo-aigc-lab",
+  "private": true,
+  "scripts": {
+    "dev": "serve -p 8080"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}

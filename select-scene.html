@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>选择场景 - XootGo AIGC</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-logo">
+      <a href="index.html" class="page-back" style="margin-bottom:0;color:var(--gray-600);">← 返回</a>
+    </div>
+    <h1 class="topbar-title" style="font-size:1rem;">选择场景</h1>
+    <div class="topbar-actions"></div>
+  </header>
+
+  <div class="page-header">
+    <p class="page-title" id="scenePageTitle">篮球 · 选择模板</p>
+    <p style="font-size:0.875rem;color:var(--gray-500);margin-top:4px;">选择一种成片场景，AI 将据此生成您的视频</p>
+  </div>
+
+  <div class="style-list" id="sceneList"></div>
+
+  <div class="footer-cta">
+    <button type="button" class="btn btn-primary btn-block" id="nextBtn">下一步</button>
+  </div>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <a href="index.html" class="nav-item"><span class="nav-item-icon">⌂</span><span>Home</span></a>
+    <a href="history.html" class="nav-item"><span class="nav-item-icon">▢</span><span>Gallery</span></a>
+    <a href="#" class="nav-item-camera" aria-label="拍摄">📷</a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">✂</span><span>Create</span></a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">👤</span><span>Account</span></a>
+  </nav>
+
+  <script>
+    (function() {
+      var SCENE_LABELS = {
+        basketball: {
+          free_throw: { name: '罚球', desc: '罚球瞬间，专注出手一刻' },
+          field_goal: { name: '命中', desc: '两分命中精彩镜头' },
+          three_pointer: { name: '三分', desc: '三分线外命中高光' },
+          dunk: { name: '扣篮', desc: '扣篮瞬间，爆发力与美感' }
+        },
+        football: {
+          dribble: { name: '盘带过人', desc: '盘带突破过人精彩片段' },
+          goal: { name: '射门进球', desc: '射门与进球瞬间' },
+          set_piece_cross: { name: '定位球传中', desc: '定位球、传中与配合' }
+        }
+      };
+      var params = new URLSearchParams(location.search);
+      var sport = params.get('sport') || '';
+      if (sport !== 'basketball' && sport !== 'football') {
+        try { sport = sessionStorage.getItem('aigc_sport') || 'basketball'; } catch (e) { sport = 'basketball'; }
+      }
+      try { sessionStorage.setItem('aigc_sport', sport); } catch (e) {}
+
+      var sportName = sport === 'basketball' ? '篮球' : '足球';
+      document.getElementById('scenePageTitle').textContent = sportName + ' · 选择模板';
+      document.title = '选择场景 - ' + sportName + ' - XootGo AIGC';
+
+      var scenes = SCENE_LABELS[sport];
+      var sceneIds = Object.keys(scenes);
+      var listEl = document.getElementById('sceneList');
+      var thumbClass = sport === 'basketball' ? 'bg-style-3d' : 'bg-style-viral';
+      var thumbImg = sport === 'basketball' ? 'assets/cover-3d.png' : 'assets/cover-football.png';
+
+      sceneIds.forEach(function(sceneId, i) {
+        var d = scenes[sceneId];
+        var card = document.createElement('a');
+        card.href = '#';
+        card.className = 'style-card' + (i === 0 ? ' selected' : '');
+        card.setAttribute('data-scene', sceneId);
+        card.onclick = function(e) {
+          e.preventDefault();
+          document.querySelectorAll('.style-card').forEach(function(el) {
+            el.classList.toggle('selected', el.getAttribute('data-scene') === sceneId);
+          });
+        };
+        card.innerHTML = '<div class="style-card-thumb ' + thumbClass + '">' +
+          '<img src="' + thumbImg + '" alt="" class="style-card-cover-img">' +
+          '<span class="style-card-cover-badge">模板</span></div>' +
+          '<div class="style-card-body">' +
+          '<div class="style-card-title">' + d.name + '</div>' +
+          '<div class="style-card-desc">' + d.desc + '</div></div>';
+        listEl.appendChild(card);
+      });
+
+      document.getElementById('nextBtn').addEventListener('click', function() {
+        var selected = document.querySelector('.style-card.selected');
+        var scene = selected ? selected.getAttribute('data-scene') : sceneIds[0];
+        try {
+          sessionStorage.setItem('aigc_template', sport + '_' + scene);
+          sessionStorage.setItem('aigc_scene', scene);
+        } catch (e) {}
+        window.location.href = 'select-video.html?sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+      });
+    })();
+  </script>
+</body>
+</html>
