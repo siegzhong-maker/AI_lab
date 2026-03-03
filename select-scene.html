@@ -36,35 +36,23 @@
 
   <script>
     (function() {
+      var sport = 'basketball';
       var SCENE_LABELS = {
         basketball: {
-          free_throw: { name: '罚球', desc: '罚球瞬间，专注出手一刻' },
-          field_goal: { name: '命中', desc: '两分命中精彩镜头' },
-          three_pointer: { name: '三分', desc: '三分线外命中高光' },
-          dunk: { name: '扣篮', desc: '扣篮瞬间，爆发力与美感' }
-        },
-        football: {
-          dribble: { name: '盘带过人', desc: '盘带突破过人精彩片段' },
-          goal: { name: '射门进球', desc: '射门与进球瞬间' },
-          set_piece_cross: { name: '定位球传中', desc: '定位球、传中与配合' }
+          fx_enhance: { name: '特效增强', desc: '增强光效、动态模糊等特效表现' },
+          real_to_anime: { name: '现实转动漫', desc: '将真实视频一键转化为动漫风格' }
         }
       };
-      var params = new URLSearchParams(location.search);
-      var sport = params.get('sport') || '';
-      if (sport !== 'basketball' && sport !== 'football') {
-        try { sport = sessionStorage.getItem('aigc_sport') || 'basketball'; } catch (e) { sport = 'basketball'; }
-      }
       try { sessionStorage.setItem('aigc_sport', sport); } catch (e) {}
 
-      var sportName = sport === 'basketball' ? '篮球' : '足球';
-      document.getElementById('scenePageTitle').textContent = sportName + ' · 选择模板';
-      document.title = '选择场景 - ' + sportName + ' - XootGo AIGC';
+      document.getElementById('scenePageTitle').textContent = '篮球 · 选择模板';
+      document.title = '选择场景 - 篮球 - XootGo AIGC';
 
       var scenes = SCENE_LABELS[sport];
       var sceneIds = Object.keys(scenes);
       var listEl = document.getElementById('sceneList');
-      var thumbClass = sport === 'basketball' ? 'bg-style-3d' : 'bg-style-viral';
-      var thumbImg = sport === 'basketball' ? 'assets/cover-3d.png' : 'assets/cover-football.png';
+      var thumbClass = 'bg-style-3d';
+      var thumbImg = 'assets/cover-3d.png';
 
       sceneIds.forEach(function(sceneId, i) {
         var d = scenes[sceneId];

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>确认一帧 - XootGo AIGC</title>
+  <title>选择参考帧 - XootGo AIGC</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -11,13 +11,14 @@
     <div class="topbar-logo">
       <a href="#" id="backLink" class="page-back" style="margin-bottom:0;color:var(--gray-600);">← 返回</a>
     </div>
-    <h1 class="topbar-title" style="font-size:1rem;">确认一帧</h1>
+    <h1 class="topbar-title" style="font-size:1rem;">选择参考帧</h1>
     <div class="topbar-actions"></div>
   </header>
 
   <div class="page-header">
-    <p class="page-title">选择成片参考图</p>
+    <p class="page-title">选择参考帧</p>
     <p style="font-size:0.875rem;color:var(--gray-500);margin-top:4px;">在时间轴上选择时刻，确认一帧作为成片参考图</p>
+    <div class="upload-notice">为完成生成，我们会将你选择的视频上传至云端进行处理，仅用于本次成片生成。</div>
   </div>
 
   <div class="pick-frame-wrap">
@@ -62,10 +63,13 @@
       if (!sport || !scene) {
         try {
           sport = sessionStorage.getItem('aigc_sport') || 'basketball';
-          scene = sessionStorage.getItem('aigc_scene') || (sport === 'basketball' ? 'free_throw' : 'dribble');
-        } catch (e) {}
+          scene = sessionStorage.getItem('aigc_scene') || 'fx_enhance';
+        } catch (e) {
+          sport = 'basketball';
+          scene = 'fx_enhance';
+        }
       }
-      var template = sport && scene ? sport + '_' + scene : 'basketball_free_throw';
+      var template = sport && scene ? sport + '_' + scene : 'basketball_fx_enhance';
 
       document.getElementById('backLink').href = 'select-video.html?sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
 
@@ -140,9 +144,12 @@
           sessionStorage.setItem('aigc_reference_image', dataURL);
           sessionStorage.setItem('aigc_frame_ts', frameTs);
           sessionStorage.setItem('aigc_video_id', videoId);
+          sessionStorage.setItem('aigc_template', template);
         } catch (e) {}
-        try { sessionStorage.setItem('aigc_template', template); } catch (e) {}
-        window.location.href = 'template-preview.html?template=' + encodeURIComponent(template) + '&videoId=' + encodeURIComponent(videoId) + '&frameTs=' + encodeURIComponent(frameTs);
+        window.location.href = 'generating.html?template=' + encodeURIComponent(template) +
+          '&videoId=' + encodeURIComponent(videoId) +
+          '&frameTs=' + encodeURIComponent(frameTs) +
+          '&from=frame';
       });
     })();
   </script>

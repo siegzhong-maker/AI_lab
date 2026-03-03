@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>选择参考帧 - XootGo AIGC</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-logo">
+      <a href="#" class="page-back" id="backLink" style="margin-bottom:0;color:var(--gray-600);">← 返回</a>
+    </div>
+    <h1 class="topbar-title" style="font-size:1rem;">选择参考帧</h1>
+    <div class="topbar-actions"></div>
+  </header>
+
+  <div class="page-header">
+    <p class="page-title" id="segmentPageTitle">选择参考帧</p>
+    <p id="segmentPageDesc" style="font-size:0.875rem;color:var(--gray-500);margin-top:4px;">
+      我们基于整段视频为你推荐若干高光画面，请选择其中一帧作为成片参考。
+    </p>
+  </div>
+
+  <div class="segment-page-wrap">
+    <!-- Step 1: 选择重点片段（当前流程已改为直接选帧，此区块仅作为占位，不在界面展示） -->
+    <section id="segmentStep" class="segment-step" style="display:none;">
+      <div class="segment-preview-section">
+        <div class="segment-preview-label">当前视频片段预览</div>
+        <div class="segment-preview-wrap">
+          <div class="segment-preview-placeholder result-player-preview-bg"></div>
+        </div>
+        <div class="segment-duration-hint" id="segmentDurationHint">视频总时长约 60:00</div>
+      </div>
+
+      <div class="segment-timeline-section">
+        <div class="segment-timeline-header">
+          <span class="segment-timeline-label">时间轴（拖动彩色区间调整重点片段）</span>
+          <button type="button" class="segment-reset-btn" id="resetSegmentsBtn">重置</button>
+        </div>
+        <div class="segment-timeline-wrap">
+          <div class="segment-timeline-scale">
+            <span id="segmentScaleStart">00:00</span>
+            <span id="segmentScaleEnd">60:00</span>
+          </div>
+          <div class="segment-timeline-track" id="segmentTimeline">
+            <!-- segments rendered here -->
+          </div>
+        </div>
+        <div class="segment-timeline-hint">
+          支持新建 1–3 个重点片段；拖动彩色区间中部移动，拖动两端调整起止时间。
+        </div>
+      </div>
+
+      <div class="segment-list-section">
+        <div class="segment-list-header">
+          <span class="segment-list-title">当前重点片段</span>
+          <button type="button" class="segment-add-btn" id="addSegmentBtn">+ 新增重点片段</button>
+        </div>
+        <div class="segment-list" id="segmentList">
+          <!-- segment summary rows -->
+        </div>
+        <div class="segment-empty-hint" id="segmentEmptyHint">
+          暂无重点片段，点击上方「新增重点片段」或直接在时间轴中拖动创建。
+        </div>
+      </div>
+    </section>
+
+    <!-- Step 2: 推荐参考帧 -->
+    <section id="framesStep" class="segment-step" style="display:block;">
+      <div class="segment-frames-intro">
+        <p class="segment-frames-title">选择参考帧</p>
+        <p class="segment-frames-sub">
+          我们基于整段视频为你推荐了若干高光画面，请从中选择一帧作为成片参考。
+        </p>
+      </div>
+      <div class="segment-frames-list" id="segmentFramesList">
+        <!-- cards rendered via JS -->
+      </div>
+      <div class="segment-frames-empty" id="segmentFramesEmpty" style="display:none;">
+        暂未获取到推荐帧，请稍后重试。
+      </div>
+    </section>
+  </div>
+
+  <div class="footer-cta">
+    <button type="button" class="btn btn-primary btn-block" id="primaryActionBtn" disabled>确认参考帧</button>
+  </div>
+
+  <nav class="bottom-nav" aria-label="主导航">
+    <a href="index.html" class="nav-item"><span class="nav-item-icon">⌂</span><span>Home</span></a>
+    <a href="history.html" class="nav-item"><span class="nav-item-icon">▢</span><span>Gallery</span></a>
+    <a href="#" class="nav-item-camera" aria-label="拍摄">📷</a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">✂</span><span>Create</span></a>
+    <a href="#" class="nav-item"><span class="nav-item-icon">👤</span><span>Account</span></a>
+  </nav>
+
+  <script>
+    (function() {
+      var params = new URLSearchParams(location.search);
+      var videoId = params.get('videoId') || '1';
+      var sport = params.get('sport') || '';
+      var scene = params.get('scene') || '';
+      if (!sport || !scene) {
+        try {
+          sport = sessionStorage.getItem('aigc_sport') || 'basketball';
+          scene = sessionStorage.getItem('aigc_scene') || 'fx_enhance';
+        } catch (e) {
+          sport = 'basketball';
+          scene = 'fx_enhance';
+        }
+      }
+      var template = sport && scene ? sport + '_' + scene : 'basketball_fx_enhance';
+      try {
+        sessionStorage.setItem('aigc_template', template);
+        sessionStorage.setItem('aigc_sport', sport);
+        sessionStorage.setItem('aigc_scene', scene);
+        sessionStorage.setItem('aigc_video_id', videoId);
+      } catch (e) {}
+
+      document.getElementById('backLink').href = 'select-video.html?sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+
+      var STATE = {
+        step: 'frames',
+        videoDuration: 3600,
+        segments: [],
+        segmentFrames: [],
+        selectedFrames: {}
+      };
+
+      var MIN_SEGMENT = 3;
+      var MAX_SEGMENT = 10;
+      var MAX_SEGMENTS_COUNT = 3;
+
+      var timelineEl = document.getElementById('segmentTimeline');
+      var segmentListEl = document.getElementById('segmentList');
+      var segmentEmptyHintEl = document.getElementById('segmentEmptyHint');
+      var primaryActionBtn = document.getElementById('primaryActionBtn');
+      var segmentDurationHint = document.getElementById('segmentDurationHint');
+      var segmentScaleEnd = document.getElementById('segmentScaleEnd');
+
+      function formatTime(sec) {
+        sec = Math.max(0, Math.floor(sec));
+        var m = Math.floor(sec / 60);
+        var s = sec % 60;
+        return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      }
+
+      segmentDurationHint.textContent = '视频总时长约 ' + formatTime(STATE.videoDuration);
+      segmentScaleEnd.textContent = formatTime(STATE.videoDuration);
+
+      function ensureInitialSegment() {
+        if (STATE.segments.length) return;
+        var id = 'seg_all';
+        STATE.segments.push({ id: id, start: 0, end: STATE.videoDuration });
+      }
+
+      function renderSegments() {
+        var rect = timelineEl.getBoundingClientRect();
+        var width = rect.width || 1;
+        timelineEl.innerHTML = '';
+        STATE.segments.forEach(function(seg) {
+          var block = document.createElement('div');
+          block.className = 'segment-block';
+          block.setAttribute('data-id', seg.id);
+          var leftPercent = seg.start / STATE.videoDuration * 100;
+          var widthPercent = (seg.end - seg.start) / STATE.videoDuration * 100;
+          block.style.left = leftPercent + '%';
+          block.style.width = widthPercent + '%';
+
+          var inner = document.createElement('div');
+          inner.className = 'segment-block-inner';
+          inner.setAttribute('data-role', 'move');
+
+          var handleStart = document.createElement('div');
+          handleStart.className = 'segment-block-handle segment-block-handle-start';
+          handleStart.setAttribute('data-role', 'start');
+
+          var handleEnd = document.createElement('div');
+          handleEnd.className = 'segment-block-handle segment-block-handle-end';
+          handleEnd.setAttribute('data-role', 'end');
+
+          block.appendChild(handleStart);
+          block.appendChild(inner);
+          block.appendChild(handleEnd);
+          timelineEl.appendChild(block);
+        });
+
+        attachDragHandlers();
+        renderSegmentList();
+        updatePrimaryButtonState();
+      }
+
+      function renderSegmentList() {
+        segmentListEl.innerHTML = '';
+        if (!STATE.segments.length) {
+          segmentEmptyHintEl.style.display = 'block';
+          return;
+        }
+        segmentEmptyHintEl.style.display = 'none';
+        STATE.segments
+          .slice()
+          .sort(function(a, b) { return a.start - b.start; })
+          .forEach(function(seg, idx) {
+            var row = document.createElement('div');
+            row.className = 'segment-row';
+            var label = document.createElement('div');
+            label.className = 'segment-row-label';
+            label.textContent = '重点片段 ' + (idx + 1);
+
+            var time = document.createElement('div');
+            time.className = 'segment-row-time';
+            time.textContent = formatTime(seg.start) + ' – ' + formatTime(seg.end) + '（' + formatTime(seg.end - seg.start) + '）';
+
+            var actions = document.createElement('div');
+            actions.className = 'segment-row-actions';
+            var delBtn = document.createElement('button');
+            delBtn.type = 'button';
+            delBtn.className = 'segment-row-delete';
+            delBtn.textContent = '删除';
+            delBtn.addEventListener('click', function() {
+              STATE.segments = STATE.segments.filter(function(s) { return s.id !== seg.id; });
+              if (!STATE.segments.length) {
+                primaryActionBtn.disabled = true;
+              }
+              renderSegments();
+            });
+            actions.appendChild(delBtn);
+
+            row.appendChild(label);
+            row.appendChild(time);
+            row.appendChild(actions);
+            segmentListEl.appendChild(row);
+          });
+      }
+
+      function updatePrimaryButtonState() {
+        if (STATE.step === 'segment') {
+          primaryActionBtn.textContent = '下一步：选择推荐画面';
+          primaryActionBtn.disabled = STATE.segments.length === 0;
+        } else {
+          primaryActionBtn.textContent = '确认参考帧';
+          primaryActionBtn.disabled = getTotalSelectedFrames() === 0;
+        }
+      }
+
+      function clamp(val, min, max) {
+        return Math.max(min, Math.min(max, val));
+      }
+
+      function attachDragHandlers() {
+        var dragging = null;
+        var rect = timelineEl.getBoundingClientRect();
+        var width = rect.width || 1;
+
+        function posToTime(clientX) {
+          var x = clamp(clientX - rect.left, 0, width);
+          var ratio = x / width;
+          return ratio * STATE.videoDuration;
+        }
+
+        function onPointerDown(e) {
+          var target = e.target;
+          var role = target.getAttribute('data-role');
+          if (!role) return;
+          var block = target.closest('.segment-block');
+          if (!block) return;
+          var id = block.getAttribute('data-id');
+          var seg = STATE.segments.find(function(s) { return s.id === id; });
+          if (!seg) return;
+          e.preventDefault();
+          rect = timelineEl.getBoundingClientRect();
+          width = rect.width || 1;
+          dragging = {
+            id: id,
+            role: role,
+            startStart: seg.start,
+            startEnd: seg.end,
+            startX: e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || 0
+          };
+          window.addEventListener('pointermove', onPointerMove);
+          window.addEventListener('pointerup', onPointerUp);
+        }
+
+        function onPointerMove(e) {
+          if (!dragging) return;
+          var seg = STATE.segments.find(function(s) { return s.id === dragging.id; });
+          if (!seg) return;
+          var clientX = e.clientX || (e.touches && e.touches[0] && e.touches[0].clientX) || 0;
+          var deltaX = clientX - dragging.startX;
+          var deltaTime = deltaX / (width || 1) * STATE.videoDuration;
+          if (dragging.role === 'move') {
+            var newStart = dragging.startStart + deltaTime;
+            var newEnd = dragging.startEnd + deltaTime;
+            var length = newEnd - newStart;
+            length = Math.max(length, MIN_SEGMENT);
+            if (newStart < 0) {
+              newEnd -= newStart;
+              newStart = 0;
+            }
+            if (newEnd > STATE.videoDuration) {
+              var diff = newEnd - STATE.videoDuration;
+              newStart -= diff;
+              newEnd = STATE.videoDuration;
+              if (newStart < 0) newStart = 0;
+            }
+            seg.start = clamp(newStart, 0, STATE.videoDuration - MIN_SEGMENT);
+            seg.end = seg.start + length;
+          } else if (dragging.role === 'start') {
+            var t = posToTime(clientX);
+            var maxStart = seg.end - MIN_SEGMENT;
+            seg.start = clamp(t, 0, maxStart);
+          } else if (dragging.role === 'end') {
+            var t2 = posToTime(clientX);
+            var minEnd = seg.start + MIN_SEGMENT;
+            seg.end = clamp(t2, minEnd, STATE.videoDuration);
+          }
+          renderSegments();
+        }
+
+        function onPointerUp() {
+          dragging = null;
+          window.removeEventListener('pointermove', onPointerMove);
+          window.removeEventListener('pointerup', onPointerUp);
+        }
+
+        timelineEl.querySelectorAll('.segment-block-handle, .segment-block-inner').forEach(function(el) {
+          el.addEventListener('pointerdown', onPointerDown);
+        });
+      }
+
+      document.getElementById('addSegmentBtn').addEventListener('click', function() {
+        if (STATE.segments.length >= MAX_SEGMENTS_COUNT) {
+          alert('当前 Demo 最多支持选择 ' + MAX_SEGMENTS_COUNT + ' 个重点片段。');
+          return;
+        }
+        var base = STATE.videoDuration * (0.2 + 0.2 * STATE.segments.length);
+        var start = clamp(base, 0, Math.max(0, STATE.videoDuration - MAX_SEGMENT));
+        var end = clamp(start + MAX_SEGMENT, start + MIN_SEGMENT, STATE.videoDuration);
+        var id = 'seg_' + Date.now() + '_' + STATE.segments.length;
+        STATE.segments.push({ id: id, start: start, end: end });
+        renderSegments();
+      });
+
+      document.getElementById('resetSegmentsBtn').addEventListener('click', function() {
+        STATE.segments = [];
+        ensureInitialSegment();
+        renderSegments();
+      });
+
+      primaryActionBtn.addEventListener('click', function() {
+        if (STATE.step === 'segment') {
+          if (!STATE.segments.length) return;
+          goToFramesStep();
+        } else {
+          if (!getTotalSelectedFrames()) return;
+          confirmSelectionAndGoNext();
+        }
+      });
+
+      function getTotalSelectedFrames() {
+        var total = 0;
+        Object.keys(STATE.selectedFrames).forEach(function(segId) {
+          total += (STATE.selectedFrames[segId] || []).length;
+        });
+        return total;
+      }
+
+      function goToFramesStep() {
+        STATE.step = 'frames';
+        document.getElementById('segmentStep').style.display = 'none';
+        document.getElementById('framesStep').style.display = 'block';
+        document.getElementById('segmentPageTitle').textContent = '选择参考帧';
+        document.getElementById('segmentPageDesc').textContent = '我们基于整段视频为你推荐了若干高光画面，请从中选择一帧作为成片参考。';
+        document.getElementById('primaryActionBtn').textContent = '确认参考帧';
+        primaryActionBtn.disabled = true;
+        requestSegmentFrames(STATE.segments).then(function(res) {
+          STATE.segmentFrames = res.segmentFrames || [];
+          renderFrames();
+        }).catch(function() {
+          STATE.segmentFrames = [];
+          renderFrames();
+        });
+      }
+
+      function requestSegmentFrames(segments) {
+        var payload = {
+          videoId: videoId,
+          template: template,
+          maxFramesPerSegment: 4,
+          segments: segments.map(function(seg) {
+            return { id: seg.id, start: seg.start, end: seg.end };
+          })
+        };
+        window.__aigcSegmentFrameRequest = payload;
+        return new Promise(function(resolve) {
+          setTimeout(function() {
+            var data = {
+              segmentFrames: segments.map(function(seg) {
+                var frames = [];
+                var count = 4;
+                var length = Math.max(seg.end - seg.start, MIN_SEGMENT);
+                for (var i = 0; i < count; i++) {
+                  var ratio = (i + 1) / (count + 1);
+                  var t = seg.start + length * ratio;
+                  frames.push({
+                    time: Math.round(t),
+                    score: 0.8 + Math.random() * 0.2,
+                    faceScore: 0.5 + Math.random() * 0.5,
+                    motionScore: 0.5 + Math.random() * 0.5,
+                    thumbnailUrl: 'assets/result-preview-3d.png'
+                  });
+                }
+                return { segmentId: seg.id, frames: frames };
+              })
+            };
+            resolve(data);
+          }, 500);
+        });
+      }
+
+      function renderFrames() {
+        var listEl = document.getElementById('segmentFramesList');
+        var emptyEl = document.getElementById('segmentFramesEmpty');
+        listEl.innerHTML = '';
+        if (!STATE.segmentFrames.length) {
+          emptyEl.style.display = 'block';
+          primaryActionBtn.disabled = true;
+          return;
+        }
+        emptyEl.style.display = 'none';
+        var segById = {};
+        STATE.segments.forEach(function(seg) { segById[seg.id] = seg; });
+        STATE.segmentFrames.forEach(function(item, idx) {
+          var seg = segById[item.segmentId];
+          var card = document.createElement('div');
+          card.className = 'segment-frame-card';
+
+          var header = document.createElement('div');
+          header.className = 'segment-frame-card-header';
+          var title = document.createElement('div');
+          title.className = 'segment-frame-card-title';
+          var segIndex = STATE.segments
+            .slice()
+            .sort(function(a, b) { return a.start - b.start; })
+            .findIndex(function(s) { return s.id === item.segmentId; });
+          title.textContent = '重点片段 ' + (segIndex + 1);
+          var timeText = document.createElement('div');
+          timeText.className = 'segment-frame-card-time';
+          if (seg) {
+            timeText.textContent = formatTime(seg.start) + ' – ' + formatTime(seg.end);
+          } else {
+            timeText.textContent = '片段 ' + (idx + 1);
+          }
+          header.appendChild(title);
+          header.appendChild(timeText);
+
+          var grid = document.createElement('div');
+          grid.className = 'segment-frame-grid';
+
+          var selectedForSeg = STATE.selectedFrames[item.segmentId] || [];
+
+          item.frames.forEach(function(frame, fIdx) {
+            var cell = document.createElement('button');
+            cell.type = 'button';
+            cell.className = 'segment-frame-cell';
+            var isSelected = selectedForSeg.some(function(f) { return f.time === frame.time; });
+            if (isSelected) {
+              cell.classList.add('segment-frame-cell-selected');
+            }
+
+            var thumb = document.createElement('div');
+            thumb.className = 'segment-frame-thumb';
+            thumb.style.backgroundImage = "url('" + frame.thumbnailUrl + "')";
+
+            var badge = document.createElement('span');
+            badge.className = 'segment-frame-badge';
+            badge.textContent = '推荐';
+
+            var meta = document.createElement('div');
+            meta.className = 'segment-frame-meta';
+            meta.textContent = formatTime(frame.time);
+
+            thumb.appendChild(badge);
+            cell.appendChild(thumb);
+            cell.appendChild(meta);
+
+            cell.addEventListener('click', function() {
+              toggleFrameSelection(item.segmentId, frame);
+              renderFrames();
+            });
+
+            grid.appendChild(cell);
+          });
+
+          card.appendChild(header);
+          card.appendChild(grid);
+          listEl.appendChild(card);
+        });
+        updatePrimaryButtonState();
+      }
+
+      function toggleFrameSelection(segmentId, frame) {
+        var currentlySelected = (STATE.selectedFrames[segmentId] || []).some(function(f) {
+          return f.time === frame.time;
+        });
+        if (currentlySelected) {
+          // 再次点击同一帧，清空选择
+          STATE.selectedFrames = {};
+        } else {
+          // 仅允许全局选择一帧
+          STATE.selectedFrames = {};
+          STATE.selectedFrames[segmentId] = [{ time: frame.time, thumbnailUrl: frame.thumbnailUrl }];
+        }
+      }
+
+      function confirmSelectionAndGoNext() {
+        var selectedOrder = [];
+        STATE.segments
+          .slice()
+          .sort(function(a, b) { return a.start - b.start; })
+          .forEach(function(seg) {
+            var list = STATE.selectedFrames[seg.id] || [];
+            list.forEach(function(f) {
+              selectedOrder.push({ segmentId: seg.id, time: f.time, thumbnailUrl: f.thumbnailUrl });
+            });
+          });
+        if (!selectedOrder.length) return;
+        var primary = selectedOrder[0];
+        var frameTs = primary.time;
+
+        try {
+          sessionStorage.setItem('aigc_segments', JSON.stringify(STATE.segments));
+          sessionStorage.setItem('aigc_segment_frames', JSON.stringify(STATE.segmentFrames));
+          sessionStorage.setItem('aigc_selected_frames', JSON.stringify(STATE.selectedFrames));
+          sessionStorage.setItem('aigc_frame_ts', String(frameTs));
+          sessionStorage.setItem('aigc_video_id', videoId);
+          sessionStorage.setItem('aigc_template', template);
+          sessionStorage.setItem('aigc_reference_image', primary.thumbnailUrl);
+        } catch (e) {}
+
+        var url = 'generating.html?template=' + encodeURIComponent(template) +
+          '&videoId=' + encodeURIComponent(videoId) +
+          '&frameTs=' + encodeURIComponent(frameTs) +
+          '&from=segments';
+        window.location.href = url;
+      }
+
+      ensureInitialSegment();
+      renderSegments();
+      goToFramesStep();
+    })();
+  </script>
+</body>
+</html>
+

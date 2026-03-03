@@ -16,11 +16,12 @@
   </header>
 
   <div class="generating-wrap">
-    <div class="generating-circle" aria-hidden="true"></div>
+    <div class="generating-circle" id="generatingSpinner" aria-hidden="true"></div>
     <p class="generating-title">AI 正在生成您的成片…</p>
     <p class="generating-sub">预计需要约 5 分钟，请耐心等待</p>
     <p class="generating-time" id="countdown">预计还需 4 分 59 秒</p>
-    <a href="result.html" class="btn btn-primary" style="margin-bottom:16px;">查看成片</a>
+    <p class="generating-done-hint" id="generateDoneHint" style="display:none;">视频已生成完成，可点击下方按钮查看成片。</p>
+    <a href="result.html" class="btn btn-primary" id="viewResultBtn" style="margin-bottom:16px;">查看成片</a>
   </div>
 
   <script>
@@ -33,13 +34,36 @@
         var s = t % 60;
         return '预计还需 ' + m + ' 分 ' + (s < 10 ? '0' : '') + s + ' 秒';
       }
+      function onGenerationComplete() {
+        clearInterval(timer);
+        el.textContent = '生成完成';
+        var doneHint = document.getElementById('generateDoneHint');
+        var spinner = document.getElementById('generatingSpinner');
+        if (doneHint) doneHint.style.display = 'block';
+        if (spinner) spinner.style.display = 'none';
+        if (typeof Notification !== 'undefined') {
+          if (Notification.permission === 'granted') {
+            try {
+              new Notification('视频已生成完成', { body: '点击返回页面查看成片' });
+            } catch (e) {}
+          } else if (Notification.permission === 'default') {
+            Notification.requestPermission().then(function(perm) {
+              if (perm === 'granted') {
+                try {
+                  new Notification('视频已生成完成', { body: '点击返回页面查看成片' });
+                } catch (e) {}
+              }
+            });
+          }
+        }
+      }
+      var timer;
       if (el) {
-        var timer = setInterval(function() {
+        timer = setInterval(function() {
           remain--;
           el.textContent = format(remain);
           if (remain <= 0) {
-            clearInterval(timer);
-            el.textContent = '生成完成';
+            onGenerationComplete();
           }
         }, 1000);
       }
@@ -47,7 +71,10 @@
       var template = params.get('template') || '';
       var videoId = params.get('videoId') || '';
       var frameTs = params.get('frameTs') || '';
-      var fromPreview = params.get('from') === 'preview';
+      var fromParam = params.get('from') || '';
+      var fromPreview = fromParam === 'preview';
+      var fromSegments = fromParam === 'segments';
+      var fromFrame = fromParam === 'frame';
       if (!template && typeof sessionStorage !== 'undefined') template = sessionStorage.getItem('aigc_template') || '';
       var sport = '';
       var scene = '';
@@ -56,7 +83,15 @@
         sport = parts[0];
         scene = parts.slice(1).join('_');
       }
-      if (fromPreview && template) {
+      if (fromFrame && template) {
+        var frameBackUrl = 'pick-frame.html?videoId=' + encodeURIComponent(videoId || '') +
+          '&sport=' + encodeURIComponent(sport) +
+          '&scene=' + encodeURIComponent(scene);
+        document.getElementById('backLink').href = frameBackUrl;
+      } else if (fromSegments && template) {
+        var segmentBackUrl = 'select-segment.html?videoId=' + encodeURIComponent(videoId || '') + '&sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+        document.getElementById('backLink').href = segmentBackUrl;
+      } else if (fromPreview && template) {
         var backUrl = 'template-preview.html?template=' + encodeURIComponent(template);
         if (videoId) backUrl += '&videoId=' + encodeURIComponent(videoId);
         if (frameTs) backUrl += '&frameTs=' + encodeURIComponent(frameTs);

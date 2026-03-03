@@ -47,20 +47,23 @@
   <script>
     (function() {
       var SCENE_LABELS = {
-        basketball: { free_throw: { name: '罚球', desc: '罚球瞬间，专注出手一刻' }, field_goal: { name: '命中', desc: '两分命中精彩镜头' }, three_pointer: { name: '三分', desc: '三分线外命中高光' }, dunk: { name: '扣篮', desc: '扣篮瞬间，爆发力与美感' } },
-        football: { dribble: { name: '盘带过人', desc: '盘带突破过人精彩片段' }, goal: { name: '射门进球', desc: '射门与进球瞬间' }, set_piece_cross: { name: '定位球传中', desc: '定位球、传中与配合' } }
+        basketball: {
+          fx_enhance: { name: '特效增强', desc: '增强光效、动态模糊等特效表现' },
+          real_to_anime: { name: '现实转动漫', desc: '将真实视频一键转化为动漫风格' }
+        }
       };
-      var sportNames = { basketball: '篮球', football: '足球' };
+      var sportNames = { basketball: '篮球' };
       var params = new URLSearchParams(location.search);
       var template = params.get('template') || '';
       var videoId = params.get('videoId') || '';
       var frameTs = params.get('frameTs') || '';
+      var from = params.get('from') || '';
       if (!template || template.indexOf('_') === -1) {
-        try { template = sessionStorage.getItem('aigc_template') || 'basketball_free_throw'; } catch (e) { template = 'basketball_free_throw'; }
+        try { template = sessionStorage.getItem('aigc_template') || 'basketball_fx_enhance'; } catch (e) { template = 'basketball_fx_enhance'; }
       }
       var parts = template.split('_');
       var sport = parts[0] || 'basketball';
-      var scene = parts.slice(1).join('_') || (sport === 'basketball' ? 'free_throw' : 'dribble');
+      var scene = parts.slice(1).join('_') || 'fx_enhance';
       var sceneData = (SCENE_LABELS[sport] && SCENE_LABELS[sport][scene]) ? SCENE_LABELS[sport][scene] : { name: scene, desc: '' };
       var title = (sportNames[sport] || sport) + ' · ' + sceneData.name;
       var desc = sceneData.desc || '';
@@ -77,12 +80,16 @@
 
       document.getElementById('previewTitle').textContent = title;
       document.getElementById('previewDesc').textContent = desc;
-      var previewThumbUrl = sport === 'football' ? 'assets/cover-football.png' : 'assets/result-preview-3d.png';
+      var previewThumbUrl = 'assets/result-preview-3d.png';
       document.getElementById('previewThumb').style.backgroundImage = "url('" + previewThumbUrl + "')";
       document.getElementById('previewThumb').className = 'template-cover-preview preview-3d';
-      document.getElementById('backLink').href = videoId
-        ? 'pick-frame.html?videoId=' + encodeURIComponent(videoId) + '&sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene)
-        : 'select-video.html?sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+      if (from === 'segments') {
+        document.getElementById('backLink').href = 'select-segment.html?videoId=' + encodeURIComponent(videoId || '') + '&sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+      } else {
+        document.getElementById('backLink').href = videoId
+          ? 'pick-frame.html?videoId=' + encodeURIComponent(videoId) + '&sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene)
+          : 'select-video.html?sport=' + encodeURIComponent(sport) + '&scene=' + encodeURIComponent(scene);
+      }
       var generateBtn = document.getElementById('generateBtn');
       var genUrl = 'generating.html?template=' + encodeURIComponent(template) + '&from=preview';
       if (videoId) genUrl += '&videoId=' + encodeURIComponent(videoId);
