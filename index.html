@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剪辑App体验优化原型</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* 基础布局兜底：即使 Tailwind 加载失败，也能大致还原手机壳布局 */
+        body {
+            margin: 0;
+            background: #e5e7eb;
+            font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .app-shell {
+            width: 375px;
+            height: 812px;
+            background: #ffffff;
+            border-radius: 40px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            position: relative;
+            border: 8px solid #111827;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #mainScrollContainer {
+            flex: 1;
+            overflow-y: auto;
+            background: #f9fafb;
+        }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        .timeline-track {
+            background: repeating-linear-gradient(to right, #333, #333 1px, transparent 1px, transparent 10%);
+        }
+
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+        .animate-scan { animation: scan 2s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+
+        .custom-checkbox input:checked + div {
+            background-color: #10B981; border-color: #10B981;
+        }
+        .custom-checkbox input:checked + div i { display: block; }
+
+        /* AIGC生成时的流光特效 */
+        @keyframes glowing {
+            0% { box-shadow: 0 0 5px #8B5CF6; }
+            50% { box-shadow: 0 0 20px #8B5CF6, 0 0 30px #C084FC; }
+            100% { box-shadow: 0 0 5px #8B5CF6; }
+        }
+        .animate-glow { animation: glowing 2s infinite; }
+
+        /* 底部 tab 页面切换：确保非当前页被隐藏 */
+        .page-view { display: block; }
+        .page-view.hidden { display: none !important; }
+    </style>
+</head>
+<body class="bg-slate-100 flex justify-center items-center h-screen font-sans">
+
+    <!-- 模拟手机外壳 -->
+    <div class="app-shell">
+        
+        <!-- 顶部状态栏 -->
+        <div class="h-12 flex justify-between items-center px-6 text-black text-sm font-semibold pt-2 bg-white/95 backdrop-blur border-b border-gray-100 z-10">
+            <span>15:30</span>
+            <div class="flex space-x-2 items-center">
+                <i class="fa-solid fa-signal text-xs"></i>
+                <i class="fa-solid fa-wifi text-xs"></i>
+                <i class="fa-solid fa-battery-full text-sm"></i>
+            </div>
+        </div>
+
+        <!-- 主内容区 -->
+        <div class="flex-1 overflow-y-auto no-scrollbar bg-gray-50 pb-6" id="mainScrollContainer">
+            
+            <!-- 页面：首页 / 创作中心首页（Studio） -->
+            <div id="pageHome" class="page-view">
+            <div id="studioTopContent">
+                <div class="px-5 pt-4 pb-4 bg-gray-50">
+                    <h1 class="text-xl font-bold text-gray-900 tracking-wide">Studio</h1>
+                    <p class="mt-1 text-xs text-gray-400">AI 剪辑工作室 · 快速生成高光与特效成片</p>
+                </div>
+
+                <div class="px-5 space-y-6 mt-2">
+                    <section>
+                        <button onclick="openNewProjectFlow()" class="w-full bg-[#FF5028] text-white rounded-2xl py-4 shadow-lg shadow-orange-500/30 flex flex-col items-center justify-center transition active:scale-95">
+                            <i class="fa-solid fa-plus text-2xl mb-2"></i>
+                            <span class="text-[15px] font-bold tracking-wide">新建项目 (New Project)</span>
+                        </button>
+
+                        <!-- 顶部快速开始：AI & 常用入口 2×2 网格 -->
+                        <div class="mt-4">
+                            <h2 class="text-sm font-bold text-gray-500 mb-2 flex items-center">
+                                <i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>快速开始
+                            </h2>
+                            <div class="grid grid-cols-2 gap-3 text-xs">
+                                <!-- AI highlight -->
+                                <button
+                                    type="button"
+                                    onclick="handleAiAnalysisEntry()"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3 flex flex-col items-start active:bg-gray-50 hover:shadow-md transition"
+                                >
+                                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center mb-1.5">
+                                        <i class="fa-solid fa-basketball text-sm"></i>
+                                    </div>
+                                    <span class="text-[13px] font-semibold text-gray-900">AI highlight</span>
+                                    <span class="text-[11px] text-gray-400 mt-0.5">自动识别进球生成高光集锦</span>
+                                </button>
+
+                                <!-- 一键成片 -->
+                                <button
+                                    type="button"
+                                    onclick="openSmartMergeFromMarkers()"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3 flex flex-col items-start active:bg-gray-50 hover:shadow-md transition"
+                                >
+                                    <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center mb-1.5">
+                                        <i class="fa-solid fa-clapperboard text-sm"></i>
+                                    </div>
+                                    <span class="text-[13px] font-semibold text-gray-900">一键成片</span>
+                                    <span class="text-[11px] text-gray-400 mt-0.5">基于标记点自动合成整场</span>
+                                </button>
+
+                                <!-- 打点剪辑 -->
+                                <button
+                                    type="button"
+                                    onclick="openManualEditorFromHome()"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3 flex flex-col items-start active:bg-gray-50 hover:shadow-md transition"
+                                >
+                                    <div class="w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center mb-1.5">
+                                        <i class="fa-solid fa-flag text-sm"></i>
+                                    </div>
+                                    <span class="text-[13px] font-semibold text-gray-900">打点剪辑</span>
+                                    <span class="text-[11px] text-gray-400 mt-0.5">手动为关键回合打点精修</span>
+                                </button>
+
+                                <!-- 合成并导出 -->
+                                <button
+                                    type="button"
+                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3 flex flex-col items-start active:bg-gray-50 hover:shadow-md transition"
+                                >
+                                    <div class="w-8 h-8 rounded-full bg-green-100 text-green-500 flex items-center justify-center mb-1.5">
+                                        <i class="fa-solid fa-layer-group text-sm"></i>
+                                    </div>
+                                    <span class="text-[13px] font-semibold text-gray-900">合成并导出</span>
+                                    <span class="text-[11px] text-gray-400 mt-0.5">快速合成当前素材并导出</span>
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- 运营活动 Banner 区 -->
+                    <section>
+                        <h2 class="text-sm font-bold text-gray-500 mb-3 flex items-center">
+                            <i class="fa-solid fa-fire text-orange-500 mr-2"></i>热门赛事活动
+                        </h2>
+                        <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1">
+                            <div class="min-w-[230px] h-24 rounded-2xl bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-400 text-white flex items-center px-4 shadow-md flex-shrink-0 cursor-pointer active:scale-95 transition">
+                                <div class="flex-1">
+                                    <p class="text-xs font-semibold opacity-80">本周精选</p>
+                                    <p class="text-sm font-bold mt-0.5 truncate">城市篮球联赛 · 决赛夜高光征集</p>
+                                    <p class="text-[11px] opacity-80 mt-1">提交高光作品，有机会上精选看板</p>
+                                </div>
+                                <i class="fa-solid fa-arrow-right text-xs opacity-80 ml-2"></i>
+                            </div>
+                            <div class="min-w-[230px] h-24 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white flex items-center px-4 shadow-md flex-shrink-0 cursor-pointer active:scale-95 transition">
+                                <div class="flex-1">
+                                    <p class="text-xs font-semibold opacity-80">运营活动</p>
+                                    <p class="text-sm font-bold mt-0.5 truncate">校园运动会 · AI 精彩集锦模板限免</p>
+                                    <p class="text-[11px] opacity-80 mt-1">使用指定模板导出可参与抽奖</p>
+                                </div>
+                                <i class="fa-solid fa-arrow-right text-xs opacity-80 ml-2"></i>
+                            </div>
+                        </div>
+                    </section>
+
+                </div>
+            </div> 
+
+            <div class="px-5">
+                <section class="mt-4 transition-all duration-300" id="draftsSection">
+                    <div class="flex items-end justify-between border-b border-gray-200 pb-2 mb-4 bg-gray-50 sticky top-0 z-10 pt-2" id="draftsTabContainer">
+                        <div class="flex space-x-6 items-end">
+                            <button id="draftsBackButton" onclick="restoreStudioHome()" class="hidden text-gray-600 pb-0.5 active:opacity-50 transition -mr-2"><i class="fa-solid fa-chevron-left text-sm"></i></button>
+                            <button class="text-[#FF5028] font-bold text-sm border-b-2 border-[#FF5028] pb-2 -mb-[10px] transition-colors" id="mainTabTemplate" onclick="switchMainTab('template')">模板</button>
+                            <button class="text-gray-400 font-bold text-sm transition-colors" id="mainTabDrafts" onclick="switchMainTab('drafts')">草稿</button>
+                        </div>
+                        <!-- 新增：首页草稿箱的查看全部按钮 -->
+                        <button onclick="viewAllDrafts()" id="draftsViewAllBtn" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center mb-1">
+                            查看全部 <i class="fa-solid fa-angle-right ml-1"></i>
+                        </button>
+                    </div>
+
+                    <!-- 模板与草稿内容区 -->
+                    <div id="templateContent" class="space-y-4 pb-10">
+                        <!-- 模板类型筛选：聚焦足篮棒球冰 4–5 个场景 -->
+                        <div class="flex flex-wrap items-center mb-1 gap-2 text-xs">
+                            <button type="button" data-template-filter="all" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-900 text-white font-semibold">
+                                推荐
+                            </button>
+                            <button type="button" data-template-filter="highlight" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                                比赛集锦
+                            </button>
+                            <button type="button" data-template-filter="player" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                                球员个人秀
+                            </button>
+                            <button type="button" data-template-filter="battle" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                                战报 & 战术
+                            </button>
+                            <button type="button" data-template-filter="effect" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                                炫酷特效
+                            </button>
+                            <button type="button" data-template-filter="train" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
+                                训练 & 练习
+                            </button>
+                        </div>
+
+                        <!-- 模板占位卡片：后续可替换为真实付费/活动模板列表 -->
+                        <div
+                            class="template-card flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer active:bg-gray-50 hover:shadow-md transition"
+                            data-tags="effect,highlight,match,recommend"
+                            onclick="openAigcTemplateFlow('highlight')"
+                        >
+                            <div class="w-24 h-20 bg-gradient-to-br from-orange-500 to-rose-500 rounded-xl relative overflow-hidden flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                                AI 精彩集锦
+                                <span class="absolute top-1 left-1 bg-white/90 text-orange-500 text-[10px] px-1.5 py-0.5 rounded-sm font-semibold">AI 模板</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm font-semibold text-gray-900 truncate">AI 精彩集锦模板</h3>
+                                <p class="text-xs text-gray-400 mt-1 line-clamp-2">一键生成比赛高光集锦，适合校园联赛、城市赛事等场景，可衔接 AI highlight 结果继续包装。</p>
+                            </div>
+                            <span class="text-[11px] text-orange-500 font-bold border border-orange-100 rounded-full px-2 py-0.5">限免体验</span>
+                        </div>
+
+                        <div
+                            class="template-card flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer active:bg-gray-50 hover:shadow-md transition"
+                            data-tags="battle,match,recommend"
+                            onclick="openStandardTemplateFlow('battle-report')"
+                        >
+                            <div class="w-24 h-20 bg-gradient-to-br from-sky-500 to-indigo-500 rounded-xl relative overflow-hidden flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                                赛事战报
+                                <span class="absolute top-1 left-1 bg-white/90 text-sky-600 text-[10px] px-1.5 py-0.5 rounded-sm font-semibold">模板</span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-sm font-semibold text-gray-900 truncate">赛事战报混剪模板</h3>
+                                <p class="text-xs text-gray-400 mt-1 line-clamp-2">自动生成比分板、MVP 镜头等，适合运营战报内容。</p>
+                            </div>
+                            <span class="text-[11px] text-gray-400 border border-gray-200 rounded-full px-2 py-0.5">更多模板即将上线</span>
+                        </div>
+                    </div>
+
+                    <div id="draftsContent" class="pb-10 hidden">
+                        <h3 class="text-sm font-bold text-gray-500 mb-2">最近草稿</h3>
+                        <div class="flex space-x-3 overflow-x-auto no-scrollbar">
+                            <!-- AIGC 生成的草稿 (带紫色特殊标签) -->
+                            <div class="min-w-[230px] flex-shrink-0 flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+                                <div class="w-24 h-20 bg-gray-800 rounded-xl relative overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-80" alt="篮球">
+                                    <span class="absolute top-1 left-1 bg-purple-600/90 text-white text-[10px] px-1.5 py-0.5 rounded-sm flex items-center"><i class="fa-solid fa-wand-magic-sparkles mr-1 text-[9px]"></i>AIGC成片</span>
+                                    <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1.5 rounded-sm">00:00:15</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-semibold text-gray-900 truncate">灌篮-火焰燃烧特效</h3>
+                                    <p class="text-xs text-gray-400 mt-1">25.4 MB · Updated 03-11 16:05</p>
+                                </div>
+                                <button class="text-gray-400 p-2"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                            </div>
+
+                            <!-- AI赛事分析 生成的草稿 -->
+                            <div class="min-w-[230px] flex-shrink-0 flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+                                <div class="w-24 h-20 bg-gray-800 rounded-xl relative overflow-hidden">
+                                    <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-80" alt="篮球">
+                                    <span class="absolute top-1 left-1 bg-[#10B981]/90 text-white text-[10px] px-1.5 py-0.5 rounded-sm flex items-center"><i class="fa-solid fa-basketball mr-1 text-[9px]"></i>赛事高光</span>
+                                    <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1.5 rounded-sm">00:00:49</span>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-sm font-semibold text-gray-900 truncate">2026-04-01 比赛集锦</h3>
+                                    <p class="text-xs text-gray-400 mt-1">10.83 MB · Updated 03-11 15:26</p>
+                                </div>
+                                <button class="text-gray-400 p-2"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            </div>
+
+            <!-- 页面：图库 -->
+            <div id="pageGallery" class="page-view hidden px-5 pt-4">
+                <h2 class="text-lg font-semibold text-gray-900 mb-3">图库</h2>
+                <p class="text-xs text-gray-400 mb-4">从本地相册或设备中选择素材，发起新建项目或一键成片。</p>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="relative aspect-[4/5] rounded-xl overflow-hidden bg-gray-200">
+                        <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+                        <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded">0:18</span>
+                    </div>
+                    <div class="relative aspect-[4/5] rounded-xl overflow-hidden bg-gray-200">
+                        <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+                        <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded">0:49</span>
+                    </div>
+                    <div class="relative aspect-[4/5] rounded-xl overflow-hidden bg-gray-200 flex items-center justify-center text-gray-400 text-xs">
+                        + 更多占位
+                    </div>
+                </div>
+                <button class="mt-6 w-full bg-black text-white text-[14px] font-bold py-3 rounded-2xl active:scale-95 transition" onclick="openNewProjectFlow()">
+                    选中素材后新建项目
+                </button>
+            </div>
+
+            <!-- 页面：相机 / 设备 -->
+            <div id="pageCamera" class="page-view hidden px-5 pt-4">
+                <h2 class="text-lg font-semibold text-gray-900 mb-3">相机</h2>
+                <p class="text-xs text-gray-400 mb-4">连接运动相机或手机相机，拍摄完成后可直接进入剪辑。</p>
+                <div class="rounded-2xl border border-dashed border-gray-300 bg-white p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 mb-1">连接 Falcon 设备</p>
+                        <p class="text-xs text-gray-400">无线预览与导入赛事录像，支持边拍边剪。</p>
+                    </div>
+                    <button class="px-3 py-1.5 rounded-full text-xs font-bold bg-black text-white active:scale-95 transition">去连接</button>
+                </div>
+            </div>
+
+            <!-- 页面：草稿箱（创作中心二级页） -->
+            <div id="pageCreateCenter" class="page-view hidden px-5 pt-4">
+                <div class="flex items-center gap-3 mb-4">
+                    <button type="button" onclick="backToCreationCenterHome()" class="p-2 -ml-2 text-gray-600 active:opacity-70" aria-label="返回"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900">草稿箱</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">集中查看和管理所有草稿与工程项目，可继续编辑或重新导出。</p>
+                    </div>
+                </div>
+                <div class="space-y-3">
+                    <div class="flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="w-20 h-16 bg-gray-800 rounded-xl relative overflow-hidden flex-shrink-0">
+                            <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-80" alt="篮球">
+                            <span class="absolute top-1 left-1 bg-purple-600/90 text-white text-[9px] px-1.5 py-0.5 rounded-sm flex items-center"><i class="fa-solid fa-wand-magic-sparkles mr-1 text-[8px]"></i>AIGC成片</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-gray-900 truncate">灌篮-火焰燃烧特效</p>
+                            <p class="text-[11px] text-gray-400 mt-1">25.4 MB · 上次编辑 03-11 16:05</p>
+                        </div>
+                        <button class="text-[11px] font-bold text-[#FF5028]" onclick="openNewProjectFlow()">继续编辑</button>
+                    </div>
+                    <div class="flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="w-20 h-16 bg-gray-800 rounded-xl relative overflow-hidden flex-shrink-0">
+                            <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-80" alt="篮球">
+                            <span class="absolute top-1 left-1 bg-emerald-500/90 text-white text-[9px] px-1.5 py-0.5 rounded-sm flex items-center"><i class="fa-solid fa-basketball mr-1 text-[8px]"></i>赛事高光</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-gray-900 truncate">2026-04-01 比赛集锦</p>
+                            <p class="text-[11px] text-gray-400 mt-1">10.8 MB · 上次编辑 03-11 15:26</p>
+                        </div>
+                        <button class="text-[11px] font-bold text-[#FF5028]" onclick="viewHistoryResult()">查看成片</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 页面：我的 -->
+            <div id="pageAccount" class="page-view hidden px-5 pt-4">
+                <h2 class="text-lg font-semibold text-gray-900 mb-3">我的</h2>
+                <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center">
+                    <div class="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold text-sm mr-3">AI</div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-gray-900">AI 剪辑助手</p>
+                        <p class="text-[11px] text-gray-400">已登录 · 同步云端项目与草稿</p>
+                    </div>
+                    <button class="text-[11px] font-bold text-gray-500 px-2 py-1 rounded-full border border-gray-200">账号设置</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航栏：5 栏 (首页 / 图库 / 相机 / 创作中心 / 我的) -->
+        <div class="h-[72px] bg-white/95 backdrop-blur border-t border-gray-100 flex justify-around items-center pb-3 pt-1 text-[11px] font-medium z-10">
+            <button type="button" id="bottomTabHome" class="bottom-tab flex flex-col items-center text-gray-400 active:scale-95 transition space-y-0.5" data-tab="home" onclick="restoreStudioHome(); setBottomTab('home');">
+                <i class="fa-solid fa-house text-lg"></i>
+                <span>首页</span>
+            </button>
+            <button type="button" id="bottomTabGallery" class="bottom-tab flex flex-col items-center text-gray-400 active:scale-95 transition space-y-0.5" data-tab="gallery" onclick="setBottomTab('gallery');">
+                <i class="fa-solid fa-images text-lg"></i>
+                <span>图库</span>
+            </button>
+            <button type="button" id="bottomTabCamera" class="bottom-tab flex flex-col items-center -mt-6" data-tab="camera" onclick="setBottomTab('camera');">
+                <div class="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center shadow-xl active:scale-95 transition">
+                    <i class="fa-solid fa-camera text-white text-xl"></i>
+                </div>
+            </button>
+            <button type="button" id="bottomTabCreate" class="bottom-tab flex flex-col items-center text-[#FF5028] cursor-pointer space-y-0.5" data-tab="create" onclick="setBottomTab('create');">
+                <i class="fa-solid fa-scissors text-lg"></i>
+                <span>创作中心</span>
+            </button>
+            <button type="button" id="bottomTabAccount" class="bottom-tab flex flex-col items-center text-gray-400 active:scale-95 transition space-y-0.5" data-tab="account" onclick="setBottomTab('account');">
+                <i class="fa-solid fa-user text-lg"></i>
+                <span>我的</span>
+            </button>
+        </div>
+
+        <!-- 通用手动剪辑：新建项目 & 手动剪辑共用工作台 -->
+        <div id="manualEditorModal" class="absolute inset-0 bg-white z-40 flex flex-col transition-transform duration-300 translate-y-full opacity-0 pointer-events-none">
+            <!-- 头部 -->
+            <div class="flex items-center justify-between px-5 py-3 bg-white/95 backdrop-blur border-b border-gray-100">
+                <button onclick="closeManualEditor()" class="text-gray-700 p-2 -ml-2"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                <div class="flex-1 text-center">
+                    <h3 class="text-black font-semibold text-[17px]">手动剪辑</h3>
+                    <p id="manualEditorSource" class="text-[11px] text-gray-400 mt-0.5">从新建项目进入</p>
+                </div>
+                <button class="text-[11px] font-bold text-gray-500 px-3 py-1.5 rounded-full border border-gray-200">草稿箱</button>
+            </div>
+
+            <!-- 步骤 1：选择素材 -->
+            <div id="manualEditorSelect" class="flex-1 overflow-y-auto no-scrollbar px-5 pt-4 pb-6 bg-gray-50">
+                <h4 class="text-sm font-semibold text-gray-900 mb-2">1. 选择要剪辑的素材</h4>
+                <p class="text-[11px] text-gray-400 mb-3">可多选比赛录像片段，后续在时间轴中精修。</p>
+                <div class="space-y-3">
+                    <div class="flex items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-100 active:bg-gray-50 cursor-pointer">
+                        <div class="w-20 h-16 bg-gray-200 rounded-xl overflow-hidden mr-3 relative">
+                            <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+                            <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded">18:11</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-gray-900 truncate">比赛录制 01</p>
+                            <p class="text-[11px] text-gray-400 mt-0.5">本地相册 · 1.2 GB</p>
+                        </div>
+                        <div class="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-[11px] text-gray-400">+</div>
+                    </div>
+                    <div class="flex items-center p-3 bg-white rounded-2xl shadow-sm border border-gray-100 active:bg-gray-50 cursor-pointer">
+                        <div class="w-20 h-16 bg-gray-200 rounded-xl overflow-hidden mr-3 relative">
+                            <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+                            <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded">09:32</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-gray-900 truncate">侧拍机位 02</p>
+                            <p class="text-[11px] text-gray-400 mt-0.5">Falcon 设备 · 18.4 GB</p>
+                        </div>
+                        <div class="w-5 h-5 rounded-full border border-gray-300 flex items-center justify-center text-[11px] text-gray-400">+</div>
+                    </div>
+                </div>
+                <button class="mt-6 w-full bg-black text-white text-[14px] font-bold py-3 rounded-2xl active:scale-95 transition" onclick="enterManualEditorWorkspace()">
+                    使用所选素材开始剪辑
+                </button>
+            </div>
+
+            <!-- 步骤 2：剪辑工作台 -->
+            <div id="manualEditorWorkspace" class="hidden flex-1 flex-col bg-white">
+                <!-- 预览区 -->
+                <div class="w-full aspect-video bg-black relative flex items-center justify-center">
+                    <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover opacity-90" alt="预览画面">
+                    <button class="w-14 h-14 rounded-full bg-white/30 backdrop-blur flex items-center justify-center shadow-md active:scale-95 transition">
+                        <i class="fa-solid fa-play text-white text-2xl ml-0.5"></i>
+                    </button>
+                </div>
+
+                <!-- 时间轴占位 -->
+                <div class="px-4 py-3 bg-gray-900">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-[11px] text-gray-300">时间轴 · 支持分割、拖拽排序、调入出点</p>
+                        <span class="text-[11px] text-gray-400">00:45 / 01:20</span>
+                    </div>
+                    <div class="w-full h-10 rounded-lg bg-gray-800 overflow-hidden relative">
+                        <div class="absolute inset-0 opacity-60 timeline-track"></div>
+                        <div class="absolute top-0 left-0 h-full w-1 bg-[#FF5028]"></div>
+                    </div>
+                </div>
+
+                <!-- 底部操作栏 -->
+                <div class="flex items-center justify-between px-4 py-3 bg-white border-t border-gray-100">
+                    <div class="flex space-x-4 text-[11px] text-gray-600">
+                        <button class="flex flex-col items-center active:scale-95 transition">
+                            <i class="fa-solid fa-scissors text-base mb-0.5"></i>
+                            <span>分割</span>
+                        </button>
+                        <button class="flex flex-col items-center active:scale-95 transition">
+                            <i class="fa-solid fa-wave-square text-base mb-0.5"></i>
+                            <span>变速</span>
+                        </button>
+                        <button class="flex flex-col items-center active:scale-95 transition">
+                            <i class="fa-solid fa-music text-base mb-0.5"></i>
+                            <span>BGM</span>
+                        </button>
+                    </div>
+                    <button class="px-4 py-2 rounded-full bg-black text-white text-[12px] font-bold active:scale-95 transition">
+                        导出预览
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 核心新增：AIGC 特效成片向导弹窗 -->
+        <!-- ========================================== -->
+        <div id="aigcModal" class="absolute inset-0 bg-white z-50 flex flex-col transition-opacity duration-300 opacity-0 pointer-events-none transform translate-y-full transition-transform duration-300 pt-10">
+            <div class="flex-1 relative w-full h-full" id="aigcBody">
+                
+                <!-- 视图 1：AIGC 选择特效场景 -->
+                <div id="aigcStepStyle" class="flex flex-col h-full bg-white relative">
+                    <div class="flex items-center justify-between px-5 py-3 bg-white/95 backdrop-blur border-b border-gray-100 sticky top-0 z-10">
+                        <button onclick="closeAigcModal()" class="text-gray-700 p-2 -ml-2"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                        <h3 class="text-black font-semibold text-lg">AIGC 特效增强</h3>
+                        <div class="w-8"></div>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto px-5 pb-10 no-scrollbar">
+                        <p class="text-sm text-gray-500 mb-6 text-center mt-4">请选择您想要生成的视频特效风格</p>
+                        
+                        <div class="space-y-5 mt-4 mb-6">
+                            <!-- 特效选项 1：动漫风 -->
+                            <div onclick="selectAigcStyle('anime')" class="relative h-32 rounded-2xl overflow-hidden cursor-pointer shadow-md active:scale-95 transition group">
+                                <img src="https://images.unsplash.com/photo-1578356920658-9411648aee7d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
+                                <div class="absolute inset-y-0 left-5 flex flex-col justify-center">
+                                    <h4 class="text-white font-bold text-lg flex items-center"><i class="fa-solid fa-film text-purple-400 mr-2"></i>热血动漫渲染</h4>
+                                    <p class="text-white/70 text-xs mt-1">将人物与场景转化为高燃动漫风</p>
+                                </div>
+                            </div>
+
+                            <!-- 特效选项 2：火焰粒子 -->
+                            <div onclick="selectAigcStyle('fire')" class="relative h-32 rounded-2xl overflow-hidden cursor-pointer shadow-md active:scale-95 transition group">
+                                <img src="https://images.unsplash.com/photo-1542652735873-fb2825bac6e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover">
+                                <div class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
+                                <div class="absolute inset-y-0 left-5 flex flex-col justify-center">
+                                    <h4 class="text-white font-bold text-lg flex items-center"><i class="fa-solid fa-fire text-orange-500 mr-2"></i>极限火焰残影</h4>
+                                    <p class="text-white/70 text-xs mt-1">捕捉动作轨迹，生成火焰特效追踪</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 专属历史记录区域 -->
+                        <div class="mt-8">
+                            <h4 class="text-base font-semibold text-gray-900 mb-4">最近生成</h4>
+                            <div class="space-y-3">
+                                <div class="flex items-center px-4 py-3 bg-white rounded-2xl shadow-sm border border-gray-100 active:bg-gray-50 cursor-pointer transition">
+                                    <div class="w-24 h-16 bg-gray-200 rounded-xl relative overflow-hidden flex-shrink-0">
+                                        <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+                                        <span class="absolute top-1 left-1 bg-purple-500/90 text-white text-[10px] px-1.5 py-0.5 rounded-sm">动漫渲染</span>
+                                    </div>
+                                    <div class="ml-4 flex-1 min-w-0">
+                                        <h5 class="text-sm font-semibold text-gray-900 truncate">扣篮动漫特效</h5>
+                                        <div class="flex items-center mt-1.5">
+                                            <span class="text-gray-400 text-xs">2026-03-10</span>
+                                        </div>
+                                    </div>
+                                    <button class="bg-gray-100 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg ml-2">预览</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 视图 2：AIGC 选择视频素材 -->
+                <div id="aigcStepGallery" class="hidden flex-col h-full bg-white relative">
+                    <div class="flex items-center justify-between px-5 py-3 bg-white/95 backdrop-blur border-b border-gray-100 sticky top-0 z-10">
+                        <button onclick="backToAigcStyle()" class="text-gray-700 p-2 -ml-2"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                        <h3 class="text-black font-semibold text-base">选择原素材</h3>
+                        <div class="w-8"></div>
+                    </div>
+                    
+                    <div class="flex-col gap-3 overflow-y-auto flex-1 no-scrollbar px-5 py-4">
+                        <div onclick="selectAigcVideo()" class="video-item flex px-4 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm relative cursor-pointer active:bg-gray-50">
+                            <div class="w-24 h-16 bg-gray-200 rounded-xl relative overflow-hidden flex-shrink-0">
+                                <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+                                <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1 rounded">00:08</span>
+                            </div>
+                            <div class="ml-3 flex-1 flex flex-col justify-center">
+                                <h4 class="text-sm font-semibold text-gray-900">实战暴扣原片</h4>
+                                <p class="text-xs text-gray-400 mt-1">12.5 MB</p>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 视图 3：AIGC 核心 - 确认高光关键帧 -->
+                <div id="aigcStepKeyframe" class="hidden flex-col h-full bg-black relative">
+                    <div class="absolute top-0 w-full z-20">
+                        <div class="h-20 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none"></div>
+                    </div>
+                    <div class="flex items-center justify-between px-5 py-3 bg-transparent absolute top-0 w-full z-30">
+                        <button onclick="backToAigcGallery()" class="text-white p-2 -ml-2 drop-shadow-md"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                        <h3 class="text-white font-semibold text-base drop-shadow-md">确认特效基准帧</h3>
+                        <div class="w-8"></div>
+                    </div>
+                    
+                    <!-- 关键帧大图预览 -->
+                    <div class="flex-1 relative flex items-center justify-center overflow-hidden pt-12">
+                        <img id="aigcKeyframeMain" src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-auto object-cover border-y border-gray-800">
+                        <!-- AI扫描准星动效 -->
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="w-32 h-32 border-2 border-purple-500/50 rounded-lg relative animate-pulse">
+                                <div class="absolute -top-1 -left-1 w-4 h-4 border-t-2 border-l-2 border-purple-400"></div>
+                                <div class="absolute -top-1 -right-1 w-4 h-4 border-t-2 border-r-2 border-purple-400"></div>
+                                <div class="absolute -bottom-1 -left-1 w-4 h-4 border-b-2 border-l-2 border-purple-400"></div>
+                                <div class="absolute -bottom-1 -right-1 w-4 h-4 border-b-2 border-r-2 border-purple-400"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 底部确认操作区 -->
+                    <div class="bg-white rounded-t-3xl px-6 py-6 pb-10 flex flex-col z-10">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 mr-3">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-gray-900 font-bold text-[16px]">已提取最佳高光帧</h4>
+                                <p class="text-gray-500 text-[12px]">将以此“暴扣瞬间”为核心生成动漫渲染视频</p>
+                            </div>
+                        </div>
+
+                        <!-- 关键帧选择引导文案 -->
+                        <p class="text-[12px] text-gray-600 mb-1">
+                            建议选择人物、篮筐和篮球同时清晰出现、动作相对稳定的一帧，作为特效生成的基准画面。
+                        </p>
+                        <p class="text-[11px] text-gray-400 mb-3">
+                            AI 已为你筛出关键画面，你可以在下方点击切换查看。
+                        </p>
+
+                        <!-- 视频进度条：支持拖动 + 推荐帧标记 -->
+                        <div class="mb-5 mt-1">
+                            <div class="flex items-center justify-between text-[11px] text-gray-500 mb-1">
+                                <span id="aigcCurrentFrameLabel">当前画面 · AI 推荐起点</span>
+                                <span>拖动下方进度条选择你喜欢的一帧</span>
+                            </div>
+                            <div id="aigcSeekBar" class="relative h-3 rounded-full bg-gray-100 flex items-center cursor-pointer">
+                                <div id="aigcSeekFill" class="absolute left-0 h-full bg-gradient-to-r from-purple-400 to-indigo-500 rounded-full" style="width: 0%;"></div>
+                                <div id="aigcSeekMarkers" class="absolute inset-0"></div>
+                                <div id="aigcSeekHandle" class="relative z-10 w-4 h-4 rounded-full bg-white border border-purple-500 shadow -ml-2"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl mb-6 border border-gray-100">
+                            <span class="text-[13px] text-gray-600 font-medium">生成时长预估</span>
+                            <span class="text-[13px] text-purple-600 font-bold">约 15 秒钟</span>
+                        </div>
+
+                        <button id="aigcConfirmBtn" onclick="startAigcGeneration()" class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-purple-500/30 active:scale-95 transition text-[16px] flex justify-center items-center">
+                            确认生成 AIGC 成片
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 视图 4：AIGC 生成加载中 -->
+                <div id="aigcStepLoading" class="hidden flex-col items-center justify-center h-full pb-20 bg-gray-900">
+                    <div class="relative w-32 h-32 rounded-2xl bg-gray-800 flex items-center justify-center mb-8 shadow-2xl animate-glow overflow-hidden">
+                        <i class="fa-solid fa-cube text-5xl text-purple-400 z-10"></i>
+                        <div class="absolute inset-0 bg-purple-500/20 mix-blend-overlay"></div>
+                    </div>
+                    <h3 class="text-[18px] font-bold text-white mb-2 tracking-wide">AI 渲染重绘中...</h3>
+                    <p class="text-[13px] text-gray-400 mb-8">云端算力全开，即将呈现视觉盛宴</p>
+                    
+                    <div class="w-64 h-[4px] bg-gray-800 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-purple-400 to-indigo-500 rounded-full transition-all duration-300 w-[20%]" id="aigcProgressBar"></div>
+                    </div>
+                    <p class="text-[11px] text-purple-300 mt-3 font-mono" id="aigcProgressText">正在构建深度图 (20%)</p>
+                </div>
+
+                <!-- 视图 5：AIGC 预览与导出 -->
+                <div id="aigcStepResult" class="hidden flex-col h-full bg-black relative">
+                    <div class="flex items-center justify-between px-5 py-4 bg-transparent absolute top-0 w-full z-20">
+                        <button onclick="closeAigcModal()" class="w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center backdrop-blur-sm"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+
+                    <!-- 生成结果视频播放 (模拟) -->
+                    <div class="flex-1 w-full bg-black relative">
+                        <img src="https://images.unsplash.com/photo-1578356920658-9411648aee7d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover">
+                        <div class="absolute bottom-40 left-5">
+                            <span class="bg-purple-600 text-white text-[10px] px-2 py-1 rounded-sm font-bold shadow-md">#动漫渲染增强</span>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-0 w-full bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-20 pb-10 px-5">
+                        <h3 class="text-white font-bold text-2xl mb-6 text-center drop-shadow-md">✨ 生成完毕！</h3>
+                        <div class="flex space-x-4">
+                            <button onclick="closeAigcModal()" class="flex-1 bg-white/20 backdrop-blur-md border border-white/30 text-white font-bold py-3.5 rounded-2xl active:scale-95 transition text-[15px]">
+                                存入草稿箱
+                            </button>
+                            <button onclick="closeAigcModal()" class="flex-[2] bg-purple-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-purple-500/40 active:scale-95 transition text-[15px] flex justify-center items-center">
+                                <i class="fa-solid fa-download mr-2"></i> 保存到相册
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- 原有 AI 赛事分析弹窗 (代码保留，精简注释) -->
+        <!-- ========================================== -->
+        <!-- 还原与补全：原有 AI 赛事分析完整弹窗逻辑 -->
+        <!-- ========================================== -->
+        <div id="aiAnalysisModal" class="absolute inset-0 bg-white z-50 flex flex-col transition-opacity duration-300 opacity-0 pointer-events-none transform translate-y-full transition-transform duration-300 pt-10">
+            <div class="flex-1 relative w-full h-full" id="aiAnalysisBody">
+                
+                <!-- 视图 1：选择运动项目 (完全独立页面) -->
+                <div id="aiStepConfig" class="flex flex-col h-full bg-white relative">
+                    <!-- 专属 Header -->
+                    <div class="flex items-center justify-between px-5 py-3 bg-white/95 backdrop-blur border-b border-gray-100 sticky top-0 z-10">
+                        <button onclick="closeAiAnalysisModal()" class="text-gray-700 p-2 -ml-2"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                        <h3 class="text-black font-semibold text-lg">智能赛事分析</h3>
+                        <div class="w-8"></div> <!-- 占位平衡 -->
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto px-5 pb-10 no-scrollbar">
+                        <p class="text-sm text-gray-500 mb-6 text-center mt-4">请选择您要分析的运动项目</p>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-8">
+                            <!-- 篮球模式 -->
+                            <div onclick="selectSport('basketball')" class="bg-white border border-gray-50 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer active:scale-95 transition">
+                                <div class="w-[72px] h-[72px] rounded-full bg-[#FFF5F0] text-[#FF7A45] flex justify-center items-center mb-4">
+                                    <i class="fa-solid fa-basketball text-4xl"></i>
+                                </div>
+                                <h4 class="font-bold text-gray-900 text-[17px] mb-1">篮球</h4>
+                                <p class="text-[11px] text-gray-400 mt-1 text-center leading-tight">进球 / 助攻 / 高光识别</p>
+                            </div>
+                            
+                            <!-- 足球模式 -->
+                            <div onclick="selectSport('football')" class="bg-white border border-gray-50 shadow-[0_4px_20px_rgba(0,0,0,0.03)] rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer active:scale-95 transition">
+                                <div class="w-[72px] h-[72px] rounded-full bg-[#F0FDF4] text-[#4ADE80] flex justify-center items-center mb-4">
+                                    <i class="fa-solid fa-futbol text-4xl"></i>
+                                </div>
+                                <h4 class="font-bold text-gray-900 text-[17px] mb-1">足球</h4>
+                                <p class="text-[11px] text-gray-400 mt-1 text-center leading-tight">射门 / 进球 / 扑救识别</p>
+                            </div>
+                        </div>
+
+                        <!-- 历史记录区域 -->
+                        <div class="mt-8">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-[16px] font-bold text-gray-900">最近记录</h4>
+                                <button onclick="viewAllDrafts()" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center">查看全部 <i class="fa-solid fa-angle-right ml-1"></i></button>
+                            </div>
+                            
+                            <div class="space-y-4">
+                                <!-- 记录 1 -->
+                                <div onclick="viewHistoryResult()" class="flex items-center p-3 bg-white rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-gray-50 active:bg-gray-50 cursor-pointer transition">
+                                    <div class="w-24 h-[64px] bg-gray-200 rounded-xl relative overflow-hidden flex-shrink-0">
+                                        <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+                                        <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded-sm font-medium">18:11</span>
+                                    </div>
+                                    <div class="ml-4 flex-1 min-w-0">
+                                        <h5 class="text-[15px] font-bold text-gray-900 truncate">2026-04-01 篮球比赛</h5>
+                                        <div class="flex items-center mt-1.5">
+                                            <span class="bg-[#ECFDF5] text-[#10B981] text-[11px] px-2 py-0.5 rounded-full flex items-center font-medium border border-[#D1FAE5]">
+                                                <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i>已分析 (5高光)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <i class="fa-solid fa-chevron-right text-gray-300 text-[15px] ml-2 pr-1"></i>
+                                </div>
+
+                                <!-- 记录 2 -->
+                                <div onclick="startAiAnalysis(true)" class="flex items-center p-3 bg-white rounded-[16px] shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-gray-50 active:bg-gray-50 cursor-pointer transition">
+                                    <div class="w-24 h-[64px] bg-gray-800 rounded-xl relative overflow-hidden flex-shrink-0">
+                                        <img src="https://images.unsplash.com/photo-1515523110800-9415d13b84a8?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-80">
+                                        <div class="absolute top-1 left-1 bg-white/20 backdrop-blur-sm text-white rounded p-1"><i class="fa-solid fa-cloud-arrow-down text-[8px]"></i></div>
+                                        <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[10px] px-1 rounded-sm font-medium">45:20</span>
+                                    </div>
+                                    <div class="ml-4 flex-1 min-w-0">
+                                        <h5 class="text-[15px] font-bold text-gray-900 truncate">比赛录制 01 (原片)</h5>
+                                        <div class="flex items-center mt-1.5">
+                                            <span class="bg-[#EFF6FF] text-[#3B82F6] text-[11px] px-2 py-0.5 rounded-full border border-[#DBEAFE] font-medium">
+                                                已下载本地
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <button class="bg-black text-white text-[13px] font-bold px-4 py-1.5 rounded-lg shadow-sm mr-1">分析</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 视图 1.5：选择相册视频 -->
+                <div id="aiStepGallery" class="hidden flex-col h-full bg-white relative">
+                    <!-- 专属 Header -->
+                    <div class="flex items-center justify-between px-5 py-3 bg-white/95 backdrop-blur border-b border-gray-100 sticky top-0 z-10">
+                        <button onclick="backToSportSelection()" class="text-gray-700 p-2 -ml-2"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                        <h3 class="text-black font-semibold text-base" id="galleryTitle">选择视频</h3>
+                        <div class="w-8"></div>
+                    </div>
+                    
+                    <div class="flex space-x-6 border-b border-gray-100 mb-4 px-5 pt-2">
+                        <button onclick="switchTab('local')" id="tabLocal" class="text-[#FF5028] font-bold text-[15px] border-b-2 border-[#FF5028] pb-2 transition-colors">本地相册</button>
+                        <button onclick="switchTab('falcon')" id="tabFalcon" class="text-gray-400 font-bold text-[15px] pb-2 transition-colors relative">
+                            Falcon 设备
+                            <span class="absolute top-0 -right-2 w-2 h-2 bg-red-500 rounded-full"></span>
+                        </button>
+                    </div>
+                    
+                    <!-- 本地相册网格 -->
+                    <div id="localGrid" class="flex-col gap-3 overflow-y-auto flex-1 no-scrollbar px-5 pb-24">
+                        <div onclick="toggleVideoSelect(this)" data-source="local" class="video-item flex p-3 bg-white border border-gray-100 rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.02)] relative cursor-pointer active:bg-gray-50">
+                            <div class="w-24 h-[64px] bg-gray-200 rounded-xl relative overflow-hidden flex-shrink-0">
+                                <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover">
+                                <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1 rounded">18:11</span>
+                            </div>
+                            <div class="ml-3 flex-1 flex flex-col justify-center">
+                                <h4 class="text-[14px] font-bold text-gray-900">2026-04-01 14:59</h4>
+                                <p class="text-[11px] text-gray-400 mt-1">150.2 MB</p>
+                            </div>
+                            <div class="select-indicator absolute right-4 top-1/2 transform -translate-y-1/2 w-[22px] h-[22px] rounded-full border border-gray-300 bg-white flex items-center justify-center text-transparent transition-colors">
+                                <i class="fa-solid fa-check text-[11px]"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Falcon 设备网格 -->
+                    <div id="falconGrid" class="hidden flex-col gap-3 overflow-y-auto flex-1 no-scrollbar px-5 pb-24">
+                        <div onclick="toggleVideoSelect(this)" data-source="falcon" class="video-item flex p-3 bg-white border border-gray-100 rounded-[16px] shadow-[0_2px_8px_rgba(0,0,0,0.02)] relative cursor-pointer active:bg-gray-50">
+                            <div class="w-24 h-[64px] bg-gray-800 rounded-xl relative overflow-hidden flex-shrink-0">
+                                <img src="https://images.unsplash.com/photo-1515523110800-9415d13b84a8?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-80">
+                                <div class="absolute top-1 left-1 bg-white/20 backdrop-blur-sm text-white rounded p-1"><i class="fa-solid fa-cloud text-[8px]"></i></div>
+                                <span class="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1 rounded">45:20</span>
+                            </div>
+                            <div class="ml-3 flex-1 flex flex-col justify-center">
+                                <h4 class="text-[14px] font-bold text-gray-900">比赛录制 01</h4>
+                                <p class="text-[11px] text-gray-400 mt-1">1.2 GB</p>
+                            </div>
+                            <div class="select-indicator absolute right-4 top-1/2 transform -translate-y-1/2 w-[22px] h-[22px] rounded-full border border-gray-300 bg-white flex items-center justify-center text-transparent transition-colors"><i class="fa-solid fa-check text-[11px]"></i></div>
+                        </div>
+                    </div>
+
+                    <div class="absolute bottom-0 left-0 w-full bg-white p-5 border-t border-gray-100 flex gap-3 z-10 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+                        <button onclick="startAiAnalysis(false)" class="flex-1 bg-gray-50 text-gray-500 font-bold py-3.5 rounded-xl transition text-[15px]">模拟无高光</button>
+                        <button id="btnStartAnalysis" disabled class="flex-[2] bg-gray-200 text-gray-400 font-bold py-3.5 rounded-xl transition text-[16px] flex justify-center items-center cursor-not-allowed">
+                            开始分析
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 视图 1.75：Falcon 下载中 -->
+                <div id="aiStepDownloading" class="hidden flex-col items-center justify-center h-full pb-20 bg-white">
+                    <div class="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center text-4xl mb-6 relative">
+                        <i class="fa-solid fa-cloud-arrow-down animate-bounce"></i>
+                        <svg class="absolute inset-0 w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="48" fill="none" stroke="#E5E7EB" stroke-width="4"></circle>
+                            <circle id="downloadCircle" cx="50" cy="50" r="48" fill="none" stroke="#3B82F6" stroke-width="4" stroke-dasharray="301.59" stroke-dashoffset="301.59" class="transition-all duration-300"></circle>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2">正在从 Falcon 下载原片...</h3>
+                    <p class="text-sm text-gray-500 mb-2">请保持设备连接，预估剩余 <span id="downloadTimeLeft">8</span> 秒</p>
+                    <p class="text-xs font-bold text-blue-500" id="downloadProgressText">0% (0 / 1.2GB)</p>
+                </div>
+
+                <!-- 视图 2：分析加载中 -->
+                <div id="aiStepLoading" class="hidden flex-col items-center justify-center h-full pb-20 bg-white">
+                    <div class="w-24 h-24 rounded-[24px] bg-gray-50 flex items-center justify-center mb-6 shadow-sm border border-gray-100">
+                        <i class="fa-solid fa-hourglass-half text-4xl text-[#FF5028] animate-pulse"></i>
+                    </div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-2" id="loadingTitleText">AI分析处理中...</h3>
+                    <p class="text-sm text-gray-500 mb-2">预计需要 <span class="text-[#FF5028] font-bold">2-3</span> 分钟</p>
+                    <p class="text-xs text-gray-400">请保持页面常亮或后台运行</p>
+                    
+                    <div class="w-48 h-[6px] bg-gray-100 rounded-full mt-8 overflow-hidden">
+                        <div class="h-full bg-[#FF5028] rounded-full transition-all duration-300 w-[45%]" id="aiProgressBar"></div>
+                    </div>
+                </div>
+
+                <!-- 视图 2.5：分析完成过渡页 -->
+                <div id="aiStepIntermediateSuccess" class="hidden flex-col items-center justify-center h-full px-5 bg-white">
+                    <div class="w-[72px] h-[72px] bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center text-3xl mb-6 shadow-sm border border-emerald-100">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">分析完成</h3>
+                    <p class="text-sm text-gray-500 mb-8">成功提取 <span class="font-bold text-[#FF5028]">4</span> 个高光片段</p>
+                    
+                    <button class="w-full bg-black text-white font-bold py-4 rounded-[16px] shadow-lg active:scale-95 transition text-[16px] flex justify-center items-center mt-auto mb-10" onclick="goToHighlightEditor()">
+                        去剪辑面板调整
+                    </button>
+                </div>
+
+                <!-- 视图 3：白板核心 - 高光片段审阅与合成 -->
+                <div id="aiSuccessState" class="hidden flex-col h-full bg-white relative">
+                    <!-- 专属 Header -->
+                    <div class="flex items-center justify-between px-5 py-3 bg-white/95 backdrop-blur border-b border-gray-100 sticky top-0 z-20">
+                        <button onclick="resetAiAnalysis()" class="text-gray-700 p-2 -ml-2"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                        <h3 class="text-black font-semibold text-base flex-1 text-center">AI highlight</h3>
+                        <button onclick="startHighlightExport()" class="bg-[#D1FAE5] text-[#059669] font-bold px-5 py-1.5 rounded-full text-sm active:scale-95 transition tracking-wide -mr-2">导出</button>
+                    </div>
+
+                    <div class="flex-1 overflow-y-auto flex flex-col no-scrollbar">
+                        <!-- 来源提示（智能一键成片时会高亮） -->
+                        <div id="smartMergeHint" class="mx-5 mt-2 mb-1 hidden">
+                            <div class="flex items-center text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-full px-2.5 py-1">
+                                <i class="fa-solid fa-bolt mr-1.5 text-[10px]"></i>
+                                <span>已基于标记点预选高光片段，可继续调整后再一键导出。</span>
+                            </div>
+                        </div>
+
+                        <!-- 视频预览区 -->
+                        <div class="w-full aspect-video bg-black relative flex items-center justify-center border-b border-gray-100">
+                            <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover opacity-90" alt="篮球高光">
+                            <div class="w-[64px] h-[64px] bg-white/40 backdrop-blur-sm rounded-lg flex items-center justify-center cursor-pointer hover:scale-105 transition absolute shadow-lg">
+                                <i class="fa-solid fa-play text-white/90 text-3xl ml-1 shadow-sm"></i>
+                            </div>
+                        </div>
+
+                        <!-- 操作栏 -->
+                        <div class="flex items-center justify-between px-5 pt-6 pb-4 bg-white">
+                            <p class="text-[16px] font-bold text-gray-900">共 <span class="text-[#FF5028]" id="clipCount">4</span> 个可合成的高光片段</p>
+                            <!-- 分段控制：AI 素材 vs 手动剪辑 -->
+                            <div class="flex items-center">
+                                <div class="flex items-center bg-gray-100 rounded-full p-[2px]">
+                                    <button
+                                        onclick="openEditClipsPanel()"
+                                        class="text-[12px] px-3 py-1.5 rounded-full flex items-center bg-white text-gray-800 font-bold shadow-sm"
+                                    >
+                                        新增/编辑素材
+                                    </button>
+                                    <button
+                                        onclick="openManualEditEntry()"
+                                        class="ml-[2px] text-[12px] px-3 py-1.5 rounded-full flex items-center text-gray-600"
+                                    >
+                                        手动剪辑
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <p class="px-5 text-[11px] text-gray-400 mb-2 bg-white">长按卡片可拖拽调整顺序，或点击下方按钮微调</p>
+                        <!-- 横向素材流（可排序） -->
+                        <div id="highlightClipStrip" class="flex overflow-x-auto no-scrollbar px-5 pb-2 space-x-3 bg-white">
+                            <!-- 卡片 1 -->
+                            <div class="relative w-[100px] h-[135px] flex-shrink-0 rounded-[12px] overflow-hidden shadow-sm">
+                                <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover">
+                                <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+                                <span class="absolute top-1.5 left-1.5 bg-black/40 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-[4px]">0:05</span>
+                                <label class="custom-checkbox absolute bottom-2 right-2 cursor-pointer z-10">
+                                    <input type="checkbox" class="hidden" checked onchange="updateClipCount()">
+                                    <div class="w-[20px] h-[20px] bg-white border border-gray-300 rounded-[4px] flex items-center justify-center transition-colors">
+                                        <i class="fa-solid fa-check text-white text-[12px] hidden"></i>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- 卡片 2 -->
+                            <div class="relative w-[100px] h-[135px] flex-shrink-0 rounded-[12px] overflow-hidden shadow-sm">
+                                <img src="https://images.unsplash.com/photo-1505666287802-931dc83948e9?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover grayscale">
+                                <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+                                <span class="absolute top-1.5 left-1.5 bg-black/40 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-[4px]">0:08</span>
+                                <label class="custom-checkbox absolute bottom-2 right-2 cursor-pointer z-10">
+                                    <input type="checkbox" class="hidden" checked onchange="updateClipCount()">
+                                    <div class="w-[20px] h-[20px] bg-white border border-gray-300 rounded-[4px] flex items-center justify-center transition-colors">
+                                        <i class="fa-solid fa-check text-white text-[12px] hidden"></i>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- 卡片 3 -->
+                            <div class="relative w-[100px] h-[135px] flex-shrink-0 rounded-[12px] overflow-hidden shadow-sm">
+                                <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover">
+                                <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+                                <span class="absolute top-1.5 left-1.5 bg-black/40 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-[4px]">0:04</span>
+                                <label class="custom-checkbox absolute bottom-2 right-2 cursor-pointer z-10">
+                                    <input type="checkbox" class="hidden" checked onchange="updateClipCount()">
+                                    <div class="w-[20px] h-[20px] bg-white border border-gray-300 rounded-[4px] flex items-center justify-center transition-colors">
+                                        <i class="fa-solid fa-check text-white text-[12px] hidden"></i>
+                                    </div>
+                                </label>
+                            </div>
+                            <!-- 卡片 4 -->
+                            <div class="relative w-[100px] h-[135px] flex-shrink-0 rounded-[12px] overflow-hidden shadow-sm">
+                                <img src="https://images.unsplash.com/photo-1515523110800-9415d13b84a8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover">
+                                <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/60 to-transparent pointer-events-none"></div>
+                                <span class="absolute top-1.5 left-1.5 bg-black/40 backdrop-blur-sm text-white text-[10px] px-1.5 py-0.5 rounded-[4px]">0:12</span>
+                                <label class="custom-checkbox absolute bottom-2 right-2 cursor-pointer z-10">
+                                    <input type="checkbox" class="hidden" checked onchange="updateClipCount()">
+                                    <div class="w-[20px] h-[20px] bg-white border border-gray-300 rounded-[4px] flex items-center justify-center transition-colors">
+                                        <i class="fa-solid fa-check text-white text-[12px] hidden"></i>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="flex items-center justify-center gap-4 px-5 pb-4 bg-white">
+                            <button type="button" onclick="reorderHighlightClip(-1)" class="text-[12px] text-gray-500 px-3 py-1.5 rounded-full border border-gray-200 active:bg-gray-50">上移片段</button>
+                            <button type="button" onclick="reorderHighlightClip(1)" class="text-[12px] text-gray-500 px-3 py-1.5 rounded-full border border-gray-200 active:bg-gray-50">下移片段</button>
+                        </div>
+
+                        <!-- BGM 选项 (悬浮感 UI) -->
+                        <div class="px-5 mt-auto pb-8">
+                            <button class="w-full bg-[#F3F4F6] text-gray-700 font-bold py-[14px] rounded-full text-[14px] flex items-center justify-center active:bg-gray-200 transition shadow-sm">
+                                <i class="fa-solid fa-music text-[#FF5028] mr-2 text-[15px]"></i> BGM: OUTSIDE <i class="fa-solid fa-angle-right ml-2 text-gray-400"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 子视图 3.1：编辑全部素材页面 -->
+                <div id="aiStepEditClips" class="hidden flex-col h-full bg-white z-30">
+                    <div class="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-50 shadow-[0_2px_10px_rgba(0,0,0,0.02)] z-10">
+                        <button onclick="closeEditClipsPanel()" class="text-gray-600 p-2 -ml-2"><i class="fa-solid fa-chevron-left text-xl"></i></button>
+                        <h3 class="text-black font-bold text-[17px] flex-1 text-center">全部素材</h3>
+                        <button onclick="closeEditClipsPanel()" class="bg-[#D1FAE5] text-[#059669] font-bold px-4 py-1.5 rounded-full text-sm active:scale-95 transition -mr-2">完成</button>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto p-1 bg-white no-scrollbar pb-24">
+                        <div class="px-1 py-2">
+                            <h4 class="text-[13px] font-bold text-gray-500 mb-2 px-1 flex items-center">
+                                <i class="fa-solid fa-robot text-emerald-500 mr-1.5"></i>AI 智能截取
+                            </h4>
+                            <div class="grid grid-cols-4 gap-[2px]">
+                                <script>
+                                    for(let i=0; i<8; i++){
+                                        let checked = i < 4 ? "checked" : "";
+                                        let duration = "0:0" + ((i%4)+3);
+                                        document.write(`
+                                        <div class="relative aspect-square bg-gray-200 cursor-pointer group rounded-sm overflow-hidden">
+                                            <img src="https://images.unsplash.com/photo-[1546519638,1519861531473,1505666287802][i%3]?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover">
+                                            <span class="absolute top-1 left-1 bg-black/40 text-white text-[10px] px-1 rounded-sm">${duration}</span>
+                                            <label class="custom-checkbox absolute bottom-1 right-1 cursor-pointer">
+                                                <input type="checkbox" class="hidden" ${checked} onchange="updateEditPanelCount()">
+                                                <div class="w-[18px] h-[18px] bg-white border border-gray-200 rounded-sm flex items-center justify-center transition-colors shadow-sm">
+                                                    <i class="fa-solid fa-check text-white text-[10px] hidden"></i>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        `);
+                                    }
+                                </script>
+                            </div>
+                        </div>
+
+                        <div class="px-1 py-2 mt-2">
+                            <h4 class="text-[13px] font-bold text-gray-500 mb-2 px-1 flex items-center">
+                                <i class="fa-solid fa-folder-open text-blue-500 mr-1.5"></i>本地相册
+                            </h4>
+                            <div class="grid grid-cols-4 gap-[2px]">
+                                <script>
+                                    for(let i=0; i<4; i++){
+                                        let duration = "0:" + ((i%5)+1) + "0";
+                                        document.write(`
+                                        <div class="relative aspect-square bg-gray-800 cursor-pointer group rounded-sm overflow-hidden">
+                                            <img src="https://images.unsplash.com/photo-1515523110800-9415d13b84a8?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" class="w-full h-full object-cover opacity-80">
+                                            <span class="absolute top-1 left-1 bg-black/40 text-white text-[10px] px-1 rounded-sm">${duration}</span>
+                                            <label class="custom-checkbox absolute bottom-1 right-1 cursor-pointer">
+                                                <input type="checkbox" class="hidden" onchange="updateEditPanelCount()">
+                                                <div class="w-[18px] h-[18px] bg-white border border-gray-200 rounded-sm flex items-center justify-center transition-colors shadow-sm">
+                                                    <i class="fa-solid fa-check text-white text-[10px] hidden"></i>
+                                                </div>
+                                            </label>
+                                        </div>
+                                        `);
+                                    }
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="absolute bottom-0 left-0 w-full px-5 py-4 bg-white border-t border-gray-100 flex justify-between items-center pb-8 shadow-[0_-4px_15px_rgba(0,0,0,0.03)] z-10">
+                        <span class="text-[15px] font-bold text-gray-900">已选择 <span id="editSelectedCount">4</span> 个素材</span>
+                        <button onclick="closeEditClipsPanel()" class="bg-[#52BA86] text-white font-bold px-8 py-2.5 rounded-full shadow-sm active:scale-95 transition tracking-widest text-[15px]">完成</button>
+                    </div>
+                </div>
+
+                <!-- 视图 4：异常降级状态 -->
+                <div id="aiErrorState" class="hidden flex-col items-center justify-center h-full px-5 bg-white">
+                    <div class="w-[72px] h-[72px] bg-orange-50 text-orange-500 rounded-full flex items-center justify-center text-4xl mb-6">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2">未检测到进球/高光</h3>
+                    <p class="text-sm text-gray-500 mb-8 text-center">该视频可能画面遮挡严重或不包含运动高光片段，AI 无法提取合成。</p>
+                    
+                    <div class="w-full space-y-3 mt-auto mb-10">
+                        <button class="w-full bg-[#FF5028] text-white font-bold py-3.5 rounded-[16px] shadow-lg active:scale-95 transition text-lg flex justify-center items-center" onclick="closeAiAnalysisModal()">
+                            <i class="fa-solid fa-hand-pointer mr-2"></i> 转为手动打点
+                        </button>
+                        <button class="w-full bg-gray-50 text-gray-700 font-bold py-3.5 rounded-[16px] active:scale-95 transition text-lg flex justify-center items-center" onclick="resetAiAnalysis()">
+                            重新选择视频
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 视图 5：导出成功分享页 -->
+                <div id="aiStepExportSuccess" class="hidden flex-col items-center h-full bg-white pt-20 px-5 relative">
+                    <button onclick="closeAiAnalysisModal()" class="absolute right-5 top-5 text-gray-400 text-2xl p-2"><i class="fa-solid fa-xmark"></i></button>
+
+                    <div class="w-24 h-24 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center text-4xl mb-6 shadow-sm border border-emerald-100">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-2 text-center">AI分析及合成高光剪辑<br>已保存至本地相册</h3>
+                    
+                    <div class="mt-16 w-full">
+                        <p class="text-xs text-gray-400 text-center mb-6 relative">
+                            <span class="bg-white px-2 relative z-10">一键分享至</span>
+                            <span class="absolute left-0 top-1/2 w-full h-[1px] bg-gray-100 -z-0"></span>
+                        </p>
+                        
+                        <div class="flex justify-center space-x-8">
+                            <div class="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition">
+                                <div class="w-12 h-12 rounded-full bg-black text-white flex items-center justify-center text-xl shadow-md"><i class="fa-brands fa-tiktok"></i></div>
+                                <span class="text-[11px] text-gray-500 font-medium">TikTok</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition">
+                                <div class="w-12 h-12 rounded-full bg-[#10B981] text-white flex items-center justify-center text-xl shadow-md"><i class="fa-brands fa-weixin"></i></div>
+                                <span class="text-[11px] text-gray-500 font-medium">微信</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 cursor-pointer active:scale-95 transition">
+                                <div class="w-12 h-12 rounded-full bg-[#EF4444] text-white flex items-center justify-center text-xl shadow-md"><i class="fa-brands fa-youtube"></i></div>
+                                <span class="text-[11px] text-gray-500 font-medium">YouTube</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-auto w-full space-y-3 mb-10">
+                        <button class="w-full bg-[#FF5028] text-white font-bold py-3.5 rounded-[16px] active:scale-95 transition text-[15px]" onclick="fromExportSuccessContinueEdit()">
+                            继续编辑
+                        </button>
+                        <button class="w-full bg-gray-100 text-gray-700 font-bold py-3.5 rounded-[16px] active:scale-95 transition text-[15px]" onclick="fromExportSuccessToDrafts()">
+                            保存到草稿
+                        </button>
+                        <button class="w-full bg-gray-50 text-gray-600 font-bold py-3 rounded-[16px] active:scale-95 transition text-[14px]" onclick="closeAiAnalysisModal()">
+                            返回首页
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- AI 分析白名单提示 Toast -->
+    <div id="aiWhitelistToast" class="pointer-events-none fixed inset-x-0 top-6 flex justify-center z-50 opacity-0 transition-opacity duration-300">
+        <div class="pointer-events-auto px-4 py-2 rounded-full bg-black/85 text-white text-[12px] shadow-lg flex items-center space-x-2">
+            <i class="fa-solid fa-lock text-xs text-amber-300"></i>
+            <span>AI highlight 功能正在内测中，当前账号暂未开通体验资格。</span>
+        </div>
+    </div>
+
+    <script>
+        /* --- 首页 Tab 与查看全部交互 --- */
+        function switchMainTab(tab) {
+            const templateTab = document.getElementById('mainTabTemplate');
+            const draftsTab = document.getElementById('mainTabDrafts');
+            const templateContent = document.getElementById('templateContent');
+            const draftsContent = document.getElementById('draftsContent');
+
+            const isDrafts = tab === 'drafts';
+
+            if (isDrafts) {
+                draftsTab.className = "text-[#FF5028] font-bold text-sm border-b-2 border-[#FF5028] pb-2 -mb-[10px] transition-colors";
+                templateTab.className = "text-gray-400 font-bold text-sm pb-2 transition-colors";
+            } else {
+                templateTab.className = "text-[#FF5028] font-bold text-sm border-b-2 border-[#FF5028] pb-2 -mb-[10px] transition-colors";
+                draftsTab.className = "text-gray-400 font-bold text-sm pb-2 transition-colors";
+            }
+
+            if (templateContent && draftsContent) {
+                if (isDrafts) {
+                    templateContent.classList.add('hidden');
+                    draftsContent.classList.remove('hidden');
+                } else {
+                    draftsContent.classList.add('hidden');
+                    templateContent.classList.remove('hidden');
+                }
+            }
+        }
+
+        /* --- 模板筛选逻辑：推荐 / 比赛集锦 / 球员个人秀 / 战报&战术 / 炫酷特效 / 训练&练习 --- */
+        let currentTemplateFilter = 'all';
+
+        function setTemplateFilter(type) {
+            currentTemplateFilter = type;
+
+            const chips = document.querySelectorAll('.template-filter-chip');
+            chips.forEach(chip => {
+                const chipType = chip.getAttribute('data-template-filter');
+                const isActive = chipType === type;
+                chip.className = isActive
+                    ? 'template-filter-chip px-3 py-1.5 rounded-full bg-gray-900 text-white font-semibold'
+                    : 'template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium';
+            });
+
+            const cards = document.querySelectorAll('#templateContent .template-card');
+            cards.forEach(card => {
+                const tags = (card.dataset.tags || '').split(',').map(t => t.trim());
+
+                let visible = false;
+                if (type === 'all') {
+                    visible = true;
+                } else if (type === 'highlight') {
+                    visible = tags.includes('highlight');
+                } else if (type === 'player') {
+                    visible = tags.includes('player');
+                } else if (type === 'battle') {
+                    visible = tags.includes('battle');
+                } else if (type === 'effect') {
+                    visible = tags.includes('effect');
+                } else if (type === 'train') {
+                    visible = tags.includes('train');
+                }
+
+                if (visible) {
+                    card.classList.remove('hidden');
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+        }
+
+        function viewAllDrafts() {
+            // 从创作中心首页进入草稿箱（二级页）
+            document.getElementById('pageHome').classList.add('hidden');
+            document.getElementById('pageCreateCenter').classList.remove('hidden');
+            document.getElementById('mainScrollContainer').scrollTop = 0;
+            closeAiAnalysisModal();
+        }
+
+        function backToCreationCenterHome() {
+            // 从草稿箱返回创作中心首页（Studio）
+            document.getElementById('pageCreateCenter').classList.add('hidden');
+            document.getElementById('pageHome').classList.remove('hidden');
+            document.getElementById('mainScrollContainer').scrollTop = 0;
+            setBottomTab('create');
+        }
+
+        function restoreStudioHome() {
+            document.getElementById('studioTopContent').classList.remove('hidden');
+            
+            const draftsSec = document.getElementById('draftsSection');
+            draftsSec.classList.add('mt-8');
+            draftsSec.classList.remove('mt-2');
+
+            document.getElementById('draftsBackButton').classList.add('hidden');
+            document.getElementById('draftsViewAllBtn').classList.remove('hidden'); // 恢复查看全部按钮
+            
+            document.getElementById('mainScrollContainer').scrollTop = 0;
+        }
+
+        function switchPageView(tab) {
+            // 创作中心 tab 显示创作中心首页（Studio），草稿箱为二级页由 viewAllDrafts 进入
+            const mapping = {
+                home: 'pageHome',
+                gallery: 'pageGallery',
+                camera: 'pageCamera',
+                create: 'pageHome',
+                account: 'pageAccount'
+            };
+            Object.keys(mapping).forEach(key => {
+                const id = mapping[key];
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (key === tab) {
+                    el.classList.remove('hidden');
+                } else {
+                    el.classList.add('hidden');
+                }
+            });
+        }
+
+        function setBottomTab(tab) {
+            document.querySelectorAll('.bottom-tab').forEach(btn => {
+                if (btn.getAttribute('data-tab') === 'camera') return;
+                const active = btn.getAttribute('data-tab') === tab;
+                btn.classList.toggle('text-[#FF5028]', active);
+                btn.classList.toggle('text-gray-400', !active);
+            });
+            switchPageView(tab);
+        }
+
+        // 页面加载时默认显示「创作中心」，并确保其他 tab 内容正确隐藏
+        document.addEventListener('DOMContentLoaded', function () {
+            switchPageView('create');
+            document.querySelectorAll('.bottom-tab').forEach(btn => {
+                if (btn.getAttribute('data-tab') === 'camera') return;
+                const active = btn.getAttribute('data-tab') === 'create';
+                btn.classList.toggle('text-[#FF5028]', active);
+                btn.classList.toggle('text-gray-400', !active);
+            });
+        });
+
+        /* --- AIGC 特效成片交互逻辑 --- */
+        const aigcModal = document.getElementById('aigcModal');
+        const vAigcStyle = document.getElementById('aigcStepStyle');
+        const vAigcGallery = document.getElementById('aigcStepGallery');
+        const vAigcKeyframe = document.getElementById('aigcStepKeyframe');
+        const vAigcLoading = document.getElementById('aigcStepLoading');
+        const vAigcResult = document.getElementById('aigcStepResult');
+
+        // AIGC 关键帧选择状态（视频进度条交互）
+        const aigcKeyframeMainImg = document.getElementById('aigcKeyframeMain');
+        const aigcSeekBar = document.getElementById('aigcSeekBar');
+        const aigcSeekFill = document.getElementById('aigcSeekFill');
+        const aigcSeekHandle = document.getElementById('aigcSeekHandle');
+        const aigcSeekMarkers = document.getElementById('aigcSeekMarkers');
+        const aigcCurrentFrameLabel = document.getElementById('aigcCurrentFrameLabel');
+
+        const aigcFrameSources = [
+            "https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1578356920658-9411648aee7d?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+            "https://images.unsplash.com/photo-1542652735873-fb2825bac6e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80"
+        ];
+        const aigcRecommendedIndices = [0, 2]; // 推荐帧索引，将以标记点高亮显示
+
+        let aigcCurrentFrameIndex = 0;
+        let aigcSeekDragging = false;
+        let aigcSeekInited = false;
+
+        function aigcInitSeekBar() {
+            if (aigcSeekInited || !aigcSeekBar || !aigcSeekHandle) return;
+            aigcSeekInited = true;
+
+            // 渲染推荐帧标记（可点击跳转）
+            if (aigcSeekMarkers && aigcFrameSources.length > 1) {
+                aigcSeekMarkers.innerHTML = "";
+                const maxIndex = aigcFrameSources.length - 1;
+                aigcRecommendedIndices.forEach(idx => {
+                    const ratio = Math.max(0, Math.min(1, idx / maxIndex));
+                    const marker = document.createElement("button");
+                    marker.type = "button";
+                    marker.className = "absolute top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-purple-400 shadow cursor-pointer focus:outline-none";
+                    marker.style.left = `${ratio * 100}%`;
+                    marker.title = "AI 推荐关键帧";
+                    marker.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        aigcSetFrameByRatio(ratio);
+                    });
+                    aigcSeekMarkers.appendChild(marker);
+                });
+            }
+
+            const updateFromEvent = (event) => {
+                if (!aigcSeekBar) return;
+                const rect = aigcSeekBar.getBoundingClientRect();
+                const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+                let ratio = (clientX - rect.left) / rect.width;
+                ratio = Math.max(0, Math.min(1, ratio));
+                aigcSetFrameByRatio(ratio);
+            };
+
+            const onDown = (event) => {
+                aigcSeekDragging = true;
+                updateFromEvent(event);
+            };
+
+            const onMove = (event) => {
+                if (!aigcSeekDragging) return;
+                updateFromEvent(event);
+            };
+
+            const onUp = () => {
+                aigcSeekDragging = false;
+            };
+
+            aigcSeekBar.addEventListener("mousedown", onDown);
+            aigcSeekBar.addEventListener("touchstart", onDown, { passive: true });
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("touchmove", onMove, { passive: true });
+            window.addEventListener("mouseup", onUp);
+            window.addEventListener("touchend", onUp);
+
+            // 默认显示第 0 帧
+            aigcSetFrameByRatio(0);
+        }
+
+        function aigcSetFrameByRatio(ratio) {
+            if (!aigcFrameSources.length || !aigcKeyframeMainImg || !aigcSeekFill || !aigcSeekHandle) return;
+            const maxIndex = aigcFrameSources.length - 1;
+            const index = Math.round(ratio * maxIndex);
+            aigcCurrentFrameIndex = Math.max(0, Math.min(maxIndex, index));
+
+            const src = aigcFrameSources[aigcCurrentFrameIndex];
+            if (src) {
+                aigcKeyframeMainImg.src = src;
+            }
+
+            const percent = (aigcCurrentFrameIndex / maxIndex) * 100;
+            aigcSeekFill.style.width = `${percent}%`;
+            aigcSeekHandle.style.left = `${percent}%`;
+
+            if (aigcCurrentFrameLabel) {
+                if (aigcRecommendedIndices.includes(aigcCurrentFrameIndex)) {
+                    aigcCurrentFrameLabel.textContent = `当前画面 · 推荐第 ${aigcCurrentFrameIndex + 1} 帧`;
+                } else {
+                    aigcCurrentFrameLabel.textContent = `当前画面 · 第 ${aigcCurrentFrameIndex + 1} 帧`;
+                }
+            }
+        }
+
+        function openAigcModal() {
+            const views = [vAigcStyle, vAigcGallery, vAigcKeyframe, vAigcLoading, vAigcResult];
+            views.forEach(v => { v.classList.add('hidden'); v.classList.remove('flex'); });
+            vAigcStyle.classList.remove('hidden'); vAigcStyle.classList.add('flex');
+            
+            aigcModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { aigcModal.classList.remove('translate-y-full'); }, 10);
+        }
+
+        function closeAigcModal() {
+            aigcModal.classList.add('translate-y-full');
+            setTimeout(() => { aigcModal.classList.add('opacity-0', 'pointer-events-none'); }, 300);
+        }
+
+        function selectAigcStyle(style) {
+            vAigcStyle.classList.add('hidden'); vAigcStyle.classList.remove('flex');
+            vAigcGallery.classList.remove('hidden'); vAigcGallery.classList.add('flex');
+        }
+
+        function backToAigcStyle() {
+            vAigcGallery.classList.add('hidden'); vAigcGallery.classList.remove('flex');
+            vAigcStyle.classList.remove('hidden'); vAigcStyle.classList.add('flex');
+        }
+
+        function selectAigcVideo() {
+            // 选好视频后，直接进入“抽取关键帧”确认页面
+            vAigcGallery.classList.add('hidden'); vAigcGallery.classList.remove('flex');
+            vAigcKeyframe.classList.remove('hidden'); vAigcKeyframe.classList.add('flex');
+            // 每次进入关键帧页面时，将进度条重置到开头
+            aigcInitSeekBar();
+        }
+
+        function backToAigcGallery() {
+            vAigcKeyframe.classList.add('hidden'); vAigcKeyframe.classList.remove('flex');
+            vAigcGallery.classList.remove('hidden'); vAigcGallery.classList.add('flex');
+        }
+
+        function startAigcGeneration() {
+            vAigcKeyframe.classList.add('hidden'); vAigcKeyframe.classList.remove('flex');
+            vAigcLoading.classList.remove('hidden'); vAigcLoading.classList.add('flex');
+
+            let progress = 0;
+            const progressBar = document.getElementById('aigcProgressBar');
+            const progressText = document.getElementById('aigcProgressText');
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 15) + 5;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => { 
+                        vAigcLoading.classList.add('hidden'); vAigcLoading.classList.remove('flex');
+                        vAigcResult.classList.remove('hidden'); vAigcResult.classList.add('flex');
+                    }, 800);
+                }
+                progressBar.style.width = progress + '%';
+                
+                if(progress < 30) progressText.innerText = `正在提取关键人物遮罩 (${progress}%)`;
+                else if(progress < 70) progressText.innerText = `执行云端特效渲染叠加 (${progress}%)`;
+                else progressText.innerText = `生成超清预览画面 (${progress}%)`;
+                
+            }, 500);
+        }
+
+        /* --- AI 赛事分析交互逻辑 (完整恢复) --- */
+        const aiModal = document.getElementById('aiAnalysisModal');
+        const stepConfig = document.getElementById('aiStepConfig');
+        const stepGallery = document.getElementById('aiStepGallery');
+        const stepDownloading = document.getElementById('aiStepDownloading');
+        const stepLoading = document.getElementById('aiStepLoading');
+        const stepIntermediateSuccess = document.getElementById('aiStepIntermediateSuccess');
+        const aiSuccessState = document.getElementById('aiSuccessState');
+        const aiErrorState = document.getElementById('aiErrorState');
+        const stepExportSuccess = document.getElementById('aiStepExportSuccess');
+        const editClipsPanel = document.getElementById('aiStepEditClips');
+        const btnStartAnalysis = document.getElementById('btnStartAnalysis');
+
+        const FEATURE_FLAGS = {
+            aiAnalysisWhitelist: true // 本地默认开启白名单，方便体验；上线由服务端下发
+        };
+
+        const tabLocal = document.getElementById('tabLocal');
+        const tabFalcon = document.getElementById('tabFalcon');
+        const localGrid = document.getElementById('localGrid');
+        const falconGrid = document.getElementById('falconGrid');
+
+        // 绑定模板筛选点击（在脚本加载时执行一次）
+        document.querySelectorAll('.template-filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const type = chip.getAttribute('data-template-filter') || 'all';
+                setTemplateFilter(type);
+            });
+        });
+        // 默认使用「推荐」= all
+        setTemplateFilter('all');
+
+        function handleAiAnalysisEntry() {
+            if (FEATURE_FLAGS.aiAnalysisWhitelist) {
+                openAiAnalysisModal();
+            } else {
+                showAiWhitelistToast();
+            }
+        }
+
+        function showAiWhitelistToast() {
+            const toast = document.getElementById('aiWhitelistToast');
+            const soonTag = document.getElementById('aiAnalysisTagSoon');
+            const card = document.getElementById('aiAnalysisCard');
+
+            if (soonTag) {
+                soonTag.classList.remove('hidden');
+            }
+            if (card) {
+                card.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+            if (!toast) return;
+
+            toast.classList.remove('opacity-0');
+            toast.classList.add('opacity-100');
+
+            clearTimeout(window.__aiWhitelistToastTimer);
+            window.__aiWhitelistToastTimer = setTimeout(() => {
+                toast.classList.remove('opacity-100');
+                toast.classList.add('opacity-0');
+            }, 2200);
+        }
+
+        function openAiAnalysisModal() {
+            resetAiAnalysis();
+            aiModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { aiModal.classList.remove('translate-y-full'); }, 10);
+        }
+
+        // 智能一键成片：直接进入已提取高光的合成视图
+        function openSmartMergeFromMarkers() {
+            resetAiAnalysis();
+            aiModal.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => { aiModal.classList.remove('translate-y-full'); }, 10);
+
+            stepConfig.classList.add('hidden'); stepConfig.classList.remove('flex');
+            aiSuccessState.classList.remove('hidden'); aiSuccessState.classList.add('flex');
+
+            const smartHint = document.getElementById('smartMergeHint');
+            if (smartHint) {
+                smartHint.classList.remove('hidden');
+            }
+        }
+
+        function closeAiAnalysisModal() {
+            aiModal.classList.add('translate-y-full');
+            setTimeout(() => { aiModal.classList.add('opacity-0', 'pointer-events-none'); }, 300);
+        }
+
+        function resetAiAnalysis() {
+            const views = [stepConfig, stepGallery, stepDownloading, stepLoading, stepIntermediateSuccess, aiSuccessState, aiErrorState, stepExportSuccess, editClipsPanel];
+            views.forEach(v => { v.classList.add('hidden'); v.classList.remove('flex'); });
+            
+            stepConfig.classList.remove('hidden');
+            stepConfig.classList.add('flex');
+            
+            document.querySelectorAll('#aiAnalysisModal .video-item').forEach(item => {
+                item.classList.remove('selected', 'border-[#FF5028]');
+                const indicator = item.querySelector('.select-indicator');
+                if(indicator) {
+                    indicator.classList.remove('bg-[#FF5028]', 'border-[#FF5028]', 'text-white');
+                    indicator.classList.add('border-gray-300', 'bg-white', 'text-transparent');
+                }
+            });
+            if(btnStartAnalysis) {
+                btnStartAnalysis.disabled = true;
+                btnStartAnalysis.innerHTML = '开始分析';
+                btnStartAnalysis.className = "flex-[2] bg-gray-200 text-gray-400 font-bold py-3.5 rounded-xl transition text-[16px] flex justify-center items-center cursor-not-allowed";
+                btnStartAnalysis.onclick = null;
+            }
+
+            switchTab('local');
+
+            const smartHint = document.getElementById('smartMergeHint');
+            if (smartHint) {
+                smartHint.classList.add('hidden');
+            }
+        }
+
+        /* --- 模板入口与 AIGC 能力联动 --- */
+        function openAigcTemplateFlow(templateId) {
+            // 目前直接复用 AIGC 弹窗能力；后续可根据 templateId 切换不同特效风格
+            if (typeof openAigcModal === 'function') {
+                openAigcModal();
+            }
+        }
+
+        function openStandardTemplateFlow(templateId) {
+            // 预留普通模板流程的入口，当前先走新建项目工作流
+            if (typeof openNewProjectFlow === 'function') {
+                openNewProjectFlow();
+            }
+        }
+
+        function selectSport(sportType) {
+            document.getElementById('galleryTitle').innerText = sportType === 'basketball' ? "篮球分析" : "足球分析";
+            stepConfig.classList.add('hidden'); stepConfig.classList.remove('flex');
+            stepGallery.classList.remove('hidden'); stepGallery.classList.add('flex');
+        }
+        
+        function backToSportSelection() {
+            stepGallery.classList.add('hidden'); stepGallery.classList.remove('flex');
+            stepConfig.classList.remove('hidden'); stepConfig.classList.add('flex');
+        }
+
+        function switchTab(tab) {
+            if (tab === 'local') {
+                tabLocal.className = "text-[#FF5028] font-bold text-[15px] border-b-2 border-[#FF5028] pb-2 transition-colors";
+                tabFalcon.className = "text-gray-400 font-bold text-[15px] pb-2 transition-colors relative";
+                tabFalcon.innerHTML = 'Falcon 设备<span class="absolute top-0 -right-2 w-2 h-2 bg-red-500 rounded-full"></span>';
+                localGrid.classList.remove('hidden'); localGrid.classList.add('flex');
+                falconGrid.classList.add('hidden'); falconGrid.classList.remove('flex');
+            } else {
+                tabFalcon.className = "text-[#FF5028] font-bold text-[15px] border-b-2 border-[#FF5028] pb-2 transition-colors";
+                tabFalcon.innerHTML = 'Falcon 设备';
+                tabLocal.className = "text-gray-400 font-bold text-[15px] pb-2 transition-colors";
+                falconGrid.classList.remove('hidden'); falconGrid.classList.add('flex');
+                localGrid.classList.add('hidden'); localGrid.classList.remove('flex');
+            }
+        }
+
+        function toggleVideoSelect(element) {
+            document.querySelectorAll('#aiAnalysisModal .video-item').forEach(item => {
+                if (item !== element) {
+                    item.classList.remove('selected', 'border-[#FF5028]');
+                    const ind = item.querySelector('.select-indicator');
+                    if(ind){
+                        ind.classList.remove('bg-[#FF5028]', 'border-[#FF5028]', 'text-white');
+                        ind.classList.add('border-gray-300', 'bg-white', 'text-transparent');
+                    }
+                }
+            });
+
+            const isSelected = element.classList.toggle('selected');
+            element.classList.toggle('border-[#FF5028]', isSelected);
+            const indicator = element.querySelector('.select-indicator');
+            const source = element.getAttribute('data-source');
+            
+            if (isSelected) {
+                indicator.classList.remove('border-gray-300', 'bg-white', 'text-transparent');
+                indicator.classList.add('bg-[#FF5028]', 'border-[#FF5028]', 'text-white');
+                
+                btnStartAnalysis.disabled = false;
+                btnStartAnalysis.classList.remove('bg-gray-200', 'text-gray-400', 'cursor-not-allowed');
+                btnStartAnalysis.classList.add('text-white', 'shadow-lg', 'active:scale-95', 'cursor-pointer');
+                
+                if (source === 'falcon') {
+                    btnStartAnalysis.innerHTML = '<i class="fa-solid fa-cloud-arrow-down mr-2"></i> 下载并分析';
+                    btnStartAnalysis.classList.add('bg-[#FF5028]');
+                    btnStartAnalysis.onclick = () => startDownloadThenAnalyze();
+                } else {
+                    btnStartAnalysis.innerHTML = '开始分析';
+                    btnStartAnalysis.classList.add('bg-black');
+                    btnStartAnalysis.onclick = () => startAiAnalysis(true);
+                }
+            } else {
+                indicator.classList.remove('bg-[#FF5028]', 'border-[#FF5028]', 'text-white');
+                indicator.classList.add('border-gray-300', 'bg-white', 'text-transparent');
+                
+                btnStartAnalysis.disabled = true;
+                btnStartAnalysis.innerHTML = '开始分析';
+                btnStartAnalysis.className = "flex-[2] bg-gray-200 text-gray-400 font-bold py-3.5 rounded-xl transition text-[16px] flex justify-center items-center cursor-not-allowed";
+                btnStartAnalysis.onclick = null;
+            }
+        }
+
+        function startDownloadThenAnalyze() {
+            stepGallery.classList.add('hidden'); stepGallery.classList.remove('flex');
+            stepDownloading.classList.remove('hidden'); stepDownloading.classList.add('flex');
+
+            let downloadProgress = 0;
+            const progressText = document.getElementById('downloadProgressText');
+            const timeLeft = document.getElementById('downloadTimeLeft');
+            const circle = document.getElementById('downloadCircle');
+            const circumference = 301.59;
+
+            const downloadInterval = setInterval(() => {
+                downloadProgress += Math.floor(Math.random() * 20) + 10;
+                if (downloadProgress >= 100) {
+                    downloadProgress = 100;
+                    clearInterval(downloadInterval);
+                    setTimeout(() => {
+                        stepDownloading.classList.add('hidden'); stepDownloading.classList.remove('flex');
+                        startAiAnalysis(true);
+                    }, 500);
+                }
+                const downloadedGB = (downloadProgress * 1.2 / 100).toFixed(1);
+                progressText.innerText = `${downloadProgress}% (${downloadedGB} / 1.2GB)`;
+                timeLeft.innerText = Math.max(0, 8 - Math.floor(downloadProgress / 12));
+                circle.style.strokeDashoffset = circumference - (downloadProgress / 100) * circumference;
+            }, 300);
+        }
+
+        function startAiAnalysis(isSuccess) {
+            stepConfig.classList.add('hidden'); stepConfig.classList.remove('flex');
+            stepGallery.classList.add('hidden'); stepGallery.classList.remove('flex');
+            
+            stepLoading.classList.remove('hidden'); stepLoading.classList.add('flex');
+
+            let progress = 0;
+            const progressBar = document.getElementById('aiProgressBar');
+
+            const interval = setInterval(() => {
+                progress += Math.floor(Math.random() * 20) + 10;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    setTimeout(() => { showAiResult(isSuccess); }, 500);
+                }
+                progressBar.style.width = progress + '%';
+            }, 400);
+        }
+
+        function showAiResult(isSuccess) {
+            stepLoading.classList.add('hidden'); stepLoading.classList.remove('flex');
+            
+            if (isSuccess) {
+                stepIntermediateSuccess.classList.remove('hidden'); stepIntermediateSuccess.classList.add('flex');
+            } else {
+                aiErrorState.classList.remove('hidden'); aiErrorState.classList.add('flex');
+            }
+        }
+
+        function viewHistoryResult() {
+            stepConfig.classList.add('hidden'); stepConfig.classList.remove('flex');
+            aiSuccessState.classList.remove('hidden'); aiSuccessState.classList.add('flex');
+        }
+
+        function goToHighlightEditor() {
+            stepIntermediateSuccess.classList.add('hidden'); stepIntermediateSuccess.classList.remove('flex');
+            aiSuccessState.classList.remove('hidden'); aiSuccessState.classList.add('flex');
+        }
+
+        function updateClipCount() {
+            const checkedBoxes = document.querySelectorAll('#aiSuccessState .custom-checkbox input:checked');
+            document.getElementById('clipCount').innerText = checkedBoxes.length;
+        }
+
+        function openEditClipsPanel() {
+            aiSuccessState.classList.add('hidden'); aiSuccessState.classList.remove('flex');
+            editClipsPanel.classList.remove('hidden'); editClipsPanel.classList.add('flex');
+        }
+        
+        function closeEditClipsPanel() {
+            editClipsPanel.classList.add('hidden'); editClipsPanel.classList.remove('flex');
+            aiSuccessState.classList.remove('hidden'); aiSuccessState.classList.add('flex');
+            updateClipCount();
+        }
+
+        function updateEditPanelCount() {
+            const checkedBoxes = document.querySelectorAll('#aiStepEditClips .custom-checkbox input:checked');
+            document.getElementById('editSelectedCount').innerText = checkedBoxes.length;
+        }
+
+        function fromExportSuccessContinueEdit() {
+            closeAiAnalysisModal();
+            setBottomTab('create');
+            const sourceLabel = document.getElementById('manualEditorSource');
+            if (sourceLabel) sourceLabel.innerText = '来源：已导出成片';
+            const selectView = document.getElementById('manualEditorSelect');
+            const workspaceView = document.getElementById('manualEditorWorkspace');
+            if (selectView && workspaceView) {
+                selectView.classList.add('hidden');
+                workspaceView.classList.remove('hidden');
+            }
+            openManualEditorModal();
+        }
+
+        function fromExportSuccessToDrafts() {
+            closeAiAnalysisModal();
+            setBottomTab('create');
+        }
+
+        function reorderHighlightClip(delta) {
+            const strip = document.getElementById('highlightClipStrip');
+            if (!strip || strip.children.length < 2) return;
+            const cards = Array.from(strip.children);
+            const idx = 0;
+            const nextIdx = idx + delta;
+            if (nextIdx < 0 || nextIdx >= cards.length) return;
+            const a = cards[idx];
+            const b = cards[nextIdx];
+            if (delta < 0) {
+                strip.insertBefore(a, b);
+            } else {
+                strip.insertBefore(b, a);
+            }
+        }
+
+        function openManualEditorModal() {
+            const modal = document.getElementById('manualEditorModal');
+            if (!modal) return;
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            // 轻微延迟以触发过渡
+            requestAnimationFrame(() => {
+                modal.classList.remove('translate-y-full');
+            });
+        }
+
+        function closeManualEditor() {
+            const modal = document.getElementById('manualEditorModal');
+            if (!modal) return;
+            modal.classList.add('translate-y-full');
+            setTimeout(() => {
+                modal.classList.add('opacity-0', 'pointer-events-none');
+            }, 250);
+        }
+
+        function openNewProjectFlow() {
+            const sourceLabel = document.getElementById('manualEditorSource');
+            if (sourceLabel) {
+                sourceLabel.innerText = '从新建项目进入';
+            }
+            const selectView = document.getElementById('manualEditorSelect');
+            const workspaceView = document.getElementById('manualEditorWorkspace');
+            if (selectView && workspaceView) {
+                selectView.classList.remove('hidden');
+                workspaceView.classList.add('hidden');
+            }
+            if (window.setBottomTab) {
+                setBottomTab('create');
+            }
+            openManualEditorModal();
+        }
+
+        function openManualEditorFromHome() {
+            const sourceLabel = document.getElementById('manualEditorSource');
+            if (sourceLabel) {
+                sourceLabel.innerText = '从打点剪辑入口进入';
+            }
+            const selectView = document.getElementById('manualEditorSelect');
+            const workspaceView = document.getElementById('manualEditorWorkspace');
+            if (selectView && workspaceView) {
+                selectView.classList.remove('hidden');
+                workspaceView.classList.add('hidden');
+            }
+            if (window.setBottomTab) {
+                setBottomTab('create');
+            }
+            openManualEditorModal();
+        }
+
+        function enterManualEditorWorkspace() {
+            const selectView = document.getElementById('manualEditorSelect');
+            const workspaceView = document.getElementById('manualEditorWorkspace');
+            if (!selectView || !workspaceView) return;
+            selectView.classList.add('hidden');
+            workspaceView.classList.remove('hidden');
+        }
+
+        function openManualEditEntry() {
+            // 从 AI 高光审阅进入手动剪辑：关闭 AI 弹窗并直接进入工作台视图
+            closeAiAnalysisModal();
+            if (window.setBottomTab) {
+                setBottomTab('create');
+            }
+            const sourceLabel = document.getElementById('manualEditorSource');
+            if (sourceLabel) {
+                sourceLabel.innerText = '来源：AI 高光片段';
+            }
+            const selectView = document.getElementById('manualEditorSelect');
+            const workspaceView = document.getElementById('manualEditorWorkspace');
+            if (selectView && workspaceView) {
+                selectView.classList.add('hidden');
+                workspaceView.classList.remove('hidden');
+            }
+            openManualEditorModal();
+        }
+
+        function startHighlightExport() {
+            const originalContent = aiSuccessState.innerHTML;
+            aiSuccessState.innerHTML = `
+                <div class="flex items-center justify-between px-5 py-4 bg-white z-20">
+                    <button class="text-gray-700 p-2 -ml-2 invisible"><i class="fa-solid fa-chevron-left text-xl"></i></button>
+                    <h3 class="text-black font-bold text-[18px] flex-1 text-center">AI highlight</h3>
+                    <button class="invisible bg-[#D1FAE5] text-[#059669] px-5 py-1.5 rounded-full text-[14px] -mr-2">导出</button>
+                </div>
+                <div class="flex flex-col items-center justify-center flex-1">
+                    <i class="fa-solid fa-spinner fa-spin text-4xl text-[#059669] mb-4"></i>
+                    <p class="text-gray-900 font-bold text-[16px]">正在合成并导出高光片段...</p>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                aiSuccessState.innerHTML = originalContent; 
+                aiSuccessState.classList.add('hidden'); aiSuccessState.classList.remove('flex');
+                stepExportSuccess.classList.remove('hidden'); stepExportSuccess.classList.add('flex');
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
