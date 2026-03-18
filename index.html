@@ -735,6 +735,48 @@
             </div>
         </div>
 
+        <!-- 常驻浮窗入口：FAQ（主页面层可见；全屏 modal 时隐藏） -->
+        <button
+            id="floatingFaqEntry"
+            type="button"
+            onclick="openFaqSheet()"
+            class="absolute right-4 bottom-[96px] z-20 w-12 h-12 rounded-full bg-gray-900 text-white shadow-xl flex items-center justify-center active:scale-95 transition"
+            aria-label="常见问题"
+        >
+            <i class="fa-solid fa-question text-lg"></i>
+        </button>
+
+        <!-- FAQ：常见问题抽屉（bottom sheet） -->
+        <div id="faqSheet" class="absolute inset-0 z-50 pointer-events-none">
+            <div id="faqSheetBackdrop" class="absolute inset-0 bg-black/30 opacity-0 transition-opacity duration-200"></div>
+            <div id="faqSheetPanel" class="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl translate-y-full transition-transform duration-250 pb-8">
+                <div class="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <p class="text-[15px] font-extrabold text-gray-900">常见问题</p>
+                    <button type="button" onclick="closeFaqSheet()" class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center active:scale-95 transition" aria-label="关闭">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="px-5">
+                    <div class="bg-gray-100 rounded-2xl px-3 py-2.5 flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass text-gray-400 text-[13px]"></i>
+                        <input
+                            id="faqSearchInput"
+                            type="text"
+                            placeholder="搜索问题，例如：导出、比例、草稿"
+                            class="flex-1 bg-transparent outline-none text-[13px] text-gray-800 placeholder:text-gray-400"
+                            oninput="setFaqQuery(this.value)"
+                        />
+                        <button type="button" class="text-[12px] text-gray-400 font-bold" onclick="clearFaqQuery()">清除</button>
+                    </div>
+
+                    <div id="faqCategoryTabs" class="mt-3 flex gap-2 overflow-x-auto no-scrollbar pb-1"></div>
+
+                    <div id="faqList" class="mt-3 space-y-2 max-h-[420px] overflow-y-auto no-scrollbar pb-2"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- 通用手动剪辑：新建项目 & 手动剪辑共用工作台 -->
         <div id="manualEditorModal" class="absolute inset-0 bg-white z-40 flex flex-col transition-transform duration-300 translate-y-full opacity-0 pointer-events-none">
             <!-- 头部 -->
@@ -1502,6 +1544,202 @@
             if (typeof openSmartMergeFromMarkers === 'function') openSmartMergeFromMarkers();
         }
 
+        /* --- FAQ 常见问题：浮窗入口 + Bottom Sheet --- */
+        const floatingFaqEntry = document.getElementById('floatingFaqEntry');
+        const faqSheet = document.getElementById('faqSheet');
+        const faqSheetBackdrop = document.getElementById('faqSheetBackdrop');
+        const faqSheetPanel = document.getElementById('faqSheetPanel');
+        const faqSearchInput = document.getElementById('faqSearchInput');
+        const faqCategoryTabs = document.getElementById('faqCategoryTabs');
+        const faqList = document.getElementById('faqList');
+
+        const faqCategories = [
+            { id: 'all', label: '全部' },
+            { id: 'newbie', label: '新手' },
+            { id: 'edit', label: '剪辑' },
+            { id: 'export', label: '导出' },
+            { id: 'template', label: '模板' },
+            { id: 'account', label: '账号' }
+        ];
+
+        const faqItems = [
+            {
+                id: 'q1',
+                category: 'newbie',
+                q: '如何开始一个手动剪辑项目？',
+                a: '在首页点击 New Project，选择素材后进入剪辑工作台进行打点、分割和排序。',
+                keywords: ['新建', '项目', '手动', '剪辑', 'New Project']
+            },
+            {
+                id: 'q2',
+                category: 'template',
+                q: '模板支持哪些比例？',
+                a: '模板预览支持 16:9、9:16 和 1:1，可在模板区顶部切换比例查看效果。',
+                keywords: ['模板', '比例', '16:9', '9:16', '1:1']
+            },
+            {
+                id: 'q3',
+                category: 'export',
+                q: '合并并导出是什么？',
+                a: '把选中的片段按顺序合成为一条视频并导出。你也可以先手动剪辑，再进入合并导出。',
+                keywords: ['合并', '导出', '成片', '导出失败']
+            },
+            {
+                id: 'q4',
+                category: 'edit',
+                q: '如何打点标记高光片段？',
+                a: '进入打点剪辑后，在时间轴上选择入点/出点并保存标记，后续可对标记片段排序与微调。',
+                keywords: ['打点', '高光', '标记', '入点', '出点']
+            },
+            {
+                id: 'q5',
+                category: 'account',
+                q: '草稿和已导出视频在哪里找？',
+                a: '进入“我的项目”，在草稿箱/已导出两个 tab 中查看并继续编辑或分享。',
+                keywords: ['草稿', '已导出', '我的项目', 'tab']
+            },
+            {
+                id: 'q6',
+                category: 'template',
+                q: '如何查看全部模板？',
+                a: '在模板区点击“查看全部”或各分类的 more，会进入“全部模板”独立页。',
+                keywords: ['查看全部', 'more', '全部模板']
+            }
+        ];
+
+        let currentFaqCategory = 'all';
+        let currentFaqQuery = '';
+        let openFaqId = null;
+        let faqSheetOpen = false;
+
+        function openFaqSheet() {
+            if (!faqSheet || !faqSheetBackdrop || !faqSheetPanel) return;
+            faqSheetOpen = true;
+            faqSheet.classList.remove('pointer-events-none');
+            faqSheetBackdrop.classList.remove('opacity-0');
+            faqSheetBackdrop.classList.add('opacity-100');
+            setTimeout(() => { faqSheetPanel.classList.remove('translate-y-full'); }, 10);
+            updateFloatingFaqVisibility();
+            setTimeout(() => { if (faqSearchInput) faqSearchInput.focus(); }, 80);
+        }
+
+        function closeFaqSheet() {
+            if (!faqSheet || !faqSheetBackdrop || !faqSheetPanel) return;
+            faqSheetOpen = false;
+            faqSheetPanel.classList.add('translate-y-full');
+            faqSheetBackdrop.classList.remove('opacity-100');
+            faqSheetBackdrop.classList.add('opacity-0');
+            setTimeout(() => { faqSheet.classList.add('pointer-events-none'); }, 260);
+            updateFloatingFaqVisibility();
+        }
+
+        if (faqSheetBackdrop) {
+            faqSheetBackdrop.addEventListener('click', closeFaqSheet);
+        }
+
+        function setFaqQuery(q) {
+            currentFaqQuery = (q || '').trim().toLowerCase();
+            openFaqId = null;
+            renderFaqList();
+        }
+
+        function clearFaqQuery() {
+            currentFaqQuery = '';
+            if (faqSearchInput) faqSearchInput.value = '';
+            openFaqId = null;
+            renderFaqList();
+        }
+
+        function setFaqCategory(cat) {
+            currentFaqCategory = cat;
+            openFaqId = null;
+            renderFaqTabs();
+            renderFaqList();
+        }
+
+        function renderFaqTabs() {
+            if (!faqCategoryTabs) return;
+            faqCategoryTabs.innerHTML = faqCategories.map(c => {
+                const active = c.id === currentFaqCategory;
+                const cls = active
+                    ? 'px-3 py-1.5 rounded-full bg-gray-900 text-white text-[12px] font-bold flex-shrink-0 active:scale-95 transition'
+                    : 'px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 text-[12px] font-bold flex-shrink-0 active:scale-95 transition';
+                return `<button type="button" class="${cls}" onclick="setFaqCategory('${c.id}')">${c.label}</button>`;
+            }).join('');
+        }
+
+        function getFilteredFaqItems() {
+            const q = currentFaqQuery;
+            return faqItems.filter(item => {
+                const catOk = currentFaqCategory === 'all' || item.category === currentFaqCategory;
+                if (!catOk) return false;
+                if (!q) return true;
+                const hay = [item.q, item.a, ...(item.keywords || [])].join(' ').toLowerCase();
+                return hay.includes(q);
+            });
+        }
+
+        function renderFaqList() {
+            if (!faqList) return;
+            const items = getFilteredFaqItems();
+            if (items.length === 0) {
+                faqList.innerHTML = `
+                    <div class="bg-gray-50 border border-gray-100 rounded-2xl p-4 text-center">
+                        <p class="text-[13px] font-bold text-gray-700">没有找到相关问题</p>
+                        <p class="text-[11px] text-gray-400 mt-1">试试换个关键词，或切换分类。</p>
+                    </div>
+                `;
+                return;
+            }
+
+            faqList.innerHTML = items.map(item => {
+                const isOpen = item.id === openFaqId;
+                return `
+                    <div class="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                        <button type="button" class="w-full px-4 py-3 flex items-center justify-between text-left active:bg-gray-50 transition" onclick="toggleFaqItem('${item.id}')">
+                            <span class="text-[13px] font-extrabold text-gray-900 pr-3">${item.q}</span>
+                            <i class="fa-solid ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} text-gray-300 text-[12px]"></i>
+                        </button>
+                        <div class="${isOpen ? 'block' : 'hidden'} px-4 pb-3 -mt-1">
+                            <p class="text-[12px] text-gray-600 leading-relaxed">${item.a}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleFaqItem(id) {
+            openFaqId = (openFaqId === id) ? null : id;
+            renderFaqList();
+        }
+
+        function isOverlayOpenById(id) {
+            const el = document.getElementById(id);
+            if (!el) return false;
+            return !el.classList.contains('pointer-events-none');
+        }
+
+        function updateFloatingFaqVisibility() {
+            if (!floatingFaqEntry) return;
+            // 主页面层可见；全屏 modal/抽屉打开时隐藏
+            const anyOverlayOpen =
+                faqSheetOpen ||
+                isOverlayOpenById('toolboxSheet') ||
+                isOverlayOpenById('manualEditorModal') ||
+                isOverlayOpenById('aiAnalysisModal') ||
+                isOverlayOpenById('aigcModal');
+
+            floatingFaqEntry.classList.toggle('hidden', anyOverlayOpen);
+        }
+
+        // 兜底：轮询检测 overlay 状态变化（原型阶段足够）
+        setInterval(updateFloatingFaqVisibility, 300);
+
+        window.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (faqSheetOpen) closeFaqSheet();
+        });
+
         /* --- 模板比例切换：16:9 / 9:16 / 1:1 --- */
         let currentTemplateAspect = '16/9';
 
@@ -1735,6 +1973,11 @@
             if (typeof setTemplateAspect === 'function') {
                 setTemplateAspect('16/9');
             }
+
+            // FAQ 初始化
+            renderFaqTabs();
+            renderFaqList();
+            updateFloatingFaqVisibility();
         });
 
         /* --- AIGC 特效成片交互逻辑 --- */
