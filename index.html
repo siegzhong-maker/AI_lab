@@ -747,6 +747,13 @@
             <i class="fa-solid fa-question text-[16px]"></i>
         </button>
 
+        <!-- 拖拽隐藏区：拖动浮窗时出现，拖入松手即可隐藏 -->
+        <div id="floatingFaqHideZone" class="hidden absolute right-3 bottom-[92px] z-10 w-[72px] h-[72px] rounded-2xl bg-gray-900/15 backdrop-blur border border-gray-200 flex items-center justify-center text-gray-700 transition-all">
+            <div class="w-10 h-10 rounded-xl bg-white/70 flex items-center justify-center">
+                <i class="fa-solid fa-eye-slash text-[16px] text-gray-700"></i>
+            </div>
+        </div>
+
         <!-- FAQ：常见问题抽屉（bottom sheet） -->
         <div id="faqSheet" class="absolute inset-0 z-50 pointer-events-none">
             <div id="faqSheetBackdrop" class="absolute inset-0 bg-black/30 opacity-0 transition-opacity duration-200"></div>
@@ -1547,6 +1554,7 @@
 
         /* --- FAQ 常见问题：浮窗入口 + Bottom Sheet --- */
         const floatingFaqEntry = document.getElementById('floatingFaqEntry');
+        const floatingFaqHideZone = document.getElementById('floatingFaqHideZone');
         const faqSheet = document.getElementById('faqSheet');
         const faqSheetBackdrop = document.getElementById('faqSheetBackdrop');
         const faqSheetPanel = document.getElementById('faqSheetPanel');
@@ -1612,6 +1620,7 @@
         let currentFaqQuery = '';
         let openFaqId = null;
         let faqSheetOpen = false;
+        let floatingFaqUserHidden = false;
 
         function openFaqSheet() {
             if (!faqSheet || !faqSheetBackdrop || !faqSheetPanel) return;
@@ -1730,15 +1739,17 @@
                 isOverlayOpenById('aiAnalysisModal') ||
                 isOverlayOpenById('aigcModal');
 
-            floatingFaqEntry.classList.toggle('hidden', anyOverlayOpen);
+            floatingFaqEntry.classList.toggle('hidden', floatingFaqUserHidden || anyOverlayOpen);
         }
 
         /* --- 浮窗拖拽（轻量、不遮挡）：拖拽 + 吸边 + 记忆位置 --- */
         const FLOATING_FAQ_POS_KEY = 'floatingFaqPosV1';
+        const FLOATING_FAQ_HIDDEN_KEY = 'floatingFaqHiddenV1';
         let floatingFaqDragging = false;
         let floatingFaqMoved = false;
         let floatingFaqStart = null;
         let floatingFaqPtrId = null;
+        let floatingFaqOverHideZone = false;
 
         function clamp(n, min, max) {
             return Math.max(min, Math.min(max, n));
@@ -1777,6 +1788,21 @@
             try { localStorage.setItem(FLOATING_FAQ_POS_KEY, JSON.stringify({ x, y })); } catch (_) {}
         }
 
+        function saveFloatingFaqHidden(hidden) {
+            floatingFaqUserHidden = !!hidden;
+            try { localStorage.setItem(FLOATING_FAQ_HIDDEN_KEY, hidden ? '1' : '0'); } catch (_) {}
+            updateFloatingFaqVisibility();
+        }
+
+        function loadFloatingFaqHidden() {
+            try {
+                const v = localStorage.getItem(FLOATING_FAQ_HIDDEN_KEY);
+                return v === '1';
+            } catch (_) {
+                return false;
+            }
+        }
+
         function loadFloatingFaqPos() {
             try {
                 const raw = localStorage.getItem(FLOATING_FAQ_POS_KEY);
@@ -1808,8 +1834,49 @@
             setTimeout(() => floatingFaqEntry.classList.remove('transition-transform'), 260);
         }
 
+        function getHideZoneBounds(shellRect) {
+            // 右下角隐藏区（避开底部导航），坐标基于 app-shell 内部
+            const zoneW = 72;
+            const zoneH = 72;
+            const margin = 12;
+            const bottomReserved = 90;
+            const x1 = shellRect.width - zoneW - margin;
+            const y1 = shellRect.height - bottomReserved - zoneH - margin;
+            const x2 = x1 + zoneW;
+            const y2 = y1 + zoneH;
+            return { x1, y1, x2, y2 };
+        }
+
+        function showHideZone() {
+            if (!floatingFaqHideZone) return;
+            floatingFaqHideZone.classList.remove('hidden');
+            floatingFaqHideZone.classList.remove('opacity-0');
+            floatingFaqHideZone.classList.add('opacity-100');
+        }
+
+        function hideHideZone() {
+            if (!floatingFaqHideZone) return;
+            floatingFaqHideZone.classList.add('hidden');
+            floatingFaqHideZone.classList.remove('opacity-100');
+            floatingFaqHideZone.classList.add('opacity-0');
+            floatingFaqHideZone.classList.remove('scale-105', 'bg-gray-900/25', 'border-gray-300');
+            floatingFaqHideZone.classList.add('bg-gray-900/15', 'border-gray-200');
+        }
+
+        function setHideZoneActive(active) {
+            if (!floatingFaqHideZone) return;
+            floatingFaqHideZone.classList.toggle('scale-105', active);
+            floatingFaqHideZone.classList.toggle('bg-gray-900/25', active);
+            floatingFaqHideZone.classList.toggle('border-gray-300', active);
+            floatingFaqHideZone.classList.toggle('bg-gray-900/15', !active);
+            floatingFaqHideZone.classList.toggle('border-gray-200', !active);
+        }
+
         function initFloatingFaqDrag() {
             if (!floatingFaqEntry) return;
+
+            floatingFaqUserHidden = loadFloatingFaqHidden();
+            updateFloatingFaqVisibility();
 
             // 初始位置：优先用记忆位置；否则保持 HTML 中的默认值
             const saved = loadFloatingFaqPos();
@@ -1822,12 +1889,15 @@
                 // 只处理主指针/单指
                 floatingFaqDragging = true;
                 floatingFaqMoved = false;
+                floatingFaqOverHideZone = false;
                 floatingFaqPtrId = e.pointerId;
                 floatingFaqEntry.setPointerCapture?.(floatingFaqPtrId);
 
                 const shellRect = getAppShellRect();
                 const btnRect = floatingFaqEntry.getBoundingClientRect();
                 if (!shellRect) return;
+
+                showHideZone();
 
                 const pos = getFloatingFaqPos();
                 floatingFaqStart = {
@@ -1851,6 +1921,15 @@
                 const nextX = clamp(floatingFaqStart.startX + dx, floatingFaqStart.bounds.minX, floatingFaqStart.bounds.maxX);
                 const nextY = clamp(floatingFaqStart.startY + dy, floatingFaqStart.bounds.minY, floatingFaqStart.bounds.maxY);
                 setFloatingFaqPos(nextX, nextY);
+
+                // 命中隐藏区：使用按钮中心点检测（shell 内坐标）
+                const btnW = floatingFaqEntry.offsetWidth || 40;
+                const btnH = floatingFaqEntry.offsetHeight || 40;
+                const cx = nextX + btnW / 2;
+                const cy = nextY + btnH / 2;
+                const zone = getHideZoneBounds(floatingFaqStart.shellRect);
+                floatingFaqOverHideZone = (cx >= zone.x1 && cx <= zone.x2 && cy >= zone.y1 && cy <= zone.y2);
+                setHideZoneActive(floatingFaqOverHideZone);
             };
 
             const onUp = () => {
@@ -1858,7 +1937,13 @@
                 floatingFaqDragging = false;
                 floatingFaqPtrId = null;
                 floatingFaqStart = null;
-                snapFloatingFaqToEdge();
+                if (floatingFaqOverHideZone) {
+                    // 用户拖到隐藏区：隐藏浮窗并记住
+                    saveFloatingFaqHidden(true);
+                } else {
+                    snapFloatingFaqToEdge();
+                }
+                hideHideZone();
             };
 
             // 用 pointer 统一鼠标+触摸
