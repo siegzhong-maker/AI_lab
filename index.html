@@ -667,6 +667,25 @@
                     </div>
                     <button class="text-[11px] font-bold text-gray-500 px-2 py-1 rounded-full border border-gray-200">账号设置</button>
                 </div>
+
+                <div class="mt-3 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="px-4 py-3 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">
+                                <i class="fa-solid fa-circle-question"></i>
+                            </div>
+                            <div>
+                                <p class="text-[13px] font-extrabold text-gray-900">常见问题浮窗</p>
+                                <p class="text-[11px] text-gray-400 mt-0.5">在主页面显示可拖拽的 FAQ 入口</p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer select-none">
+                            <input id="floatingFaqToggle" type="checkbox" class="sr-only" onchange="onFloatingFaqToggleChange(this.checked)">
+                            <div class="w-11 h-6 bg-gray-200 rounded-full transition-colors" id="floatingFaqToggleTrack"></div>
+                            <div class="absolute left-1 top-1 w-4 h-4 bg-white rounded-full shadow transition-transform" id="floatingFaqToggleThumb"></div>
+                        </label>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -1792,6 +1811,7 @@
             floatingFaqUserHidden = !!hidden;
             try { localStorage.setItem(FLOATING_FAQ_HIDDEN_KEY, hidden ? '1' : '0'); } catch (_) {}
             updateFloatingFaqVisibility();
+            syncFloatingFaqToggleUI();
         }
 
         function loadFloatingFaqHidden() {
@@ -1877,6 +1897,7 @@
 
             floatingFaqUserHidden = loadFloatingFaqHidden();
             updateFloatingFaqVisibility();
+            syncFloatingFaqToggleUI();
 
             // 初始位置：优先用记忆位置；否则保持 HTML 中的默认值
             const saved = loadFloatingFaqPos();
@@ -2220,7 +2241,27 @@
             renderFaqList();
             updateFloatingFaqVisibility();
             initFloatingFaqDrag();
+            syncFloatingFaqToggleUI();
         });
+
+        function syncFloatingFaqToggleUI() {
+            const input = document.getElementById('floatingFaqToggle');
+            const track = document.getElementById('floatingFaqToggleTrack');
+            const thumb = document.getElementById('floatingFaqToggleThumb');
+            if (!input || !track || !thumb) return;
+
+            const enabled = !floatingFaqUserHidden;
+            input.checked = enabled;
+            track.classList.toggle('bg-gray-200', !enabled);
+            track.classList.toggle('bg-gray-900', enabled);
+            thumb.classList.toggle('translate-x-0', !enabled);
+            thumb.classList.toggle('translate-x-5', enabled);
+        }
+
+        function onFloatingFaqToggleChange(enabled) {
+            // enabled=true => 显示浮窗；enabled=false => 隐藏浮窗
+            saveFloatingFaqHidden(!enabled);
+        }
 
         /* --- AIGC 特效成片交互逻辑 --- */
         const aigcModal = document.getElementById('aigcModal');
