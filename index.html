@@ -91,95 +91,134 @@
             <!-- 页面：首页 / 创作中心首页（Studio） -->
             <div id="pageHome" class="page-view">
             <div id="studioTopContent">
-                <div class="px-5 pt-4 pb-4 bg-gray-50">
-                    <h1 class="text-xl font-bold text-gray-900 tracking-wide">Studio</h1>
-                    <p class="mt-1 text-xs text-gray-400">AI 剪辑工作室 · 快速生成高光与特效成片</p>
+                <div class="px-5 pt-4 pb-3 bg-gray-50 flex items-center justify-between sticky top-0 z-10">
+                    <h1 class="text-xl font-bold text-gray-900 tracking-wide">Edit</h1>
+                    <button type="button" class="text-[12px] font-bold text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 bg-white active:scale-95 transition">
+                        工具箱 <i class="fa-solid fa-sliders ml-1 text-[11px] text-gray-500"></i>
+                    </button>
                 </div>
 
                 <div class="px-5 space-y-6 mt-2">
+                    <!-- 顶部两大入口：AI Editor（一键成片） / New Project（手动剪辑） -->
                     <section>
-                        <button onclick="openNewProjectFlow()" class="w-full bg-[#FF5028] text-white rounded-2xl py-4 shadow-lg shadow-orange-500/30 flex flex-col items-center justify-center transition active:scale-95">
-                            <i class="fa-solid fa-plus text-2xl mb-2"></i>
-                            <span class="text-[15px] font-bold tracking-wide">新建项目 (New Project)</span>
-                        </button>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button
+                                type="button"
+                                onclick="openSmartMergeFromMarkers()"
+                                class="bg-white rounded-2xl border border-gray-200 px-4 py-4 shadow-sm active:scale-95 transition text-left"
+                            >
+                                <div class="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center mb-2">
+                                    <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
+                                </div>
+                                <p class="text-[14px] font-extrabold text-gray-900 leading-tight">AI Editor</p>
+                                <p class="text-[11px] text-gray-400 mt-1">一键成片</p>
+                            </button>
 
-                        <!-- 顶部快速开始：AI & 常用入口 2×2 网格 -->
-                        <div class="mt-4">
-                            <h2 class="text-sm font-bold text-gray-500 mb-2 flex items-center">
-                                <i class="fa-solid fa-bolt text-yellow-500 mr-2"></i>快速开始
-                            </h2>
-                            <div class="grid grid-cols-2 gap-3 text-xs">
-                                <!-- AI highlight -->
-                                <button
-                                    type="button"
-                                    onclick="handleAiAnalysisEntry()"
-                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3 flex flex-col items-start active:bg-gray-50 hover:shadow-md transition"
-                                >
-                                    <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-500 flex items-center justify-center mb-1.5">
-                                        <i class="fa-solid fa-basketball text-sm"></i>
-                                    </div>
-                                    <span class="text-[13px] font-semibold text-gray-900">AI highlight</span>
-                                </button>
-
-                                <!-- 一键成片 -->
-                                <button
-                                    type="button"
-                                    onclick="openSmartMergeFromMarkers()"
-                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3 flex flex-col items-start active:bg-gray-50 hover:shadow-md transition"
-                                >
-                                    <div class="w-8 h-8 rounded-full bg-orange-100 text-orange-500 flex items-center justify-center mb-1.5">
-                                        <i class="fa-solid fa-clapperboard text-sm"></i>
-                                    </div>
-                                    <span class="text-[13px] font-semibold text-gray-900">一键成片</span>
-                                </button>
-
-                                <!-- 打点剪辑 -->
-                                <button
-                                    type="button"
-                                    onclick="openManualEditorFromHome()"
-                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3 flex flex-col items-start active:bg-gray-50 hover:shadow-md transition"
-                                >
-                                    <div class="w-8 h-8 rounded-full bg-red-100 text-red-500 flex items-center justify-center mb-1.5">
-                                        <i class="fa-solid fa-flag text-sm"></i>
-                                    </div>
-                                    <span class="text-[13px] font-semibold text-gray-900">打点剪辑</span>
-                                </button>
-
-                                <!-- 合成并导出 -->
-                                <button
-                                    type="button"
-                                    class="bg-white rounded-2xl shadow-sm border border-gray-100 px-3 py-3 flex flex-col items-start active:bg-gray-50 hover:shadow-md transition"
-                                >
-                                    <div class="w-8 h-8 rounded-full bg-green-100 text-green-500 flex itemsCENTER justifyCENTER mb-1.5">
-                                        <i class="fa-solid fa-layer-group text-sm"></i>
-                                    </div>
-                                    <span class="text-[13px] font-semibold text-gray-900">合成并导出</span>
-                                </button>
-                            </div>
+                            <button
+                                type="button"
+                                onclick="openNewProjectFlow()"
+                                class="bg-white rounded-2xl border border-gray-200 px-4 py-4 shadow-sm active:scale-95 transition text-left"
+                            >
+                                <div class="w-10 h-10 rounded-xl bg-gray-100 text-gray-900 flex items-center justify-center mb-2 border border-gray-200">
+                                    <i class="fa-solid fa-plus text-lg"></i>
+                                </div>
+                                <p class="text-[14px] font-extrabold text-gray-900 leading-tight">New Project</p>
+                                <p class="text-[11px] text-gray-400 mt-1">手动剪辑</p>
+                            </button>
                         </div>
                     </section>
 
-                    <!-- 运营活动 Banner 区 -->
+                    <!-- My Projects：新入口（云空间/草稿箱/已导出） -->
                     <section>
-                        <h2 class="text-sm font-bold text-gray-500 mb-3 flex items-center">
-                            <i class="fa-solid fa-fire text-orange-500 mr-2"></i>热门赛事活动
-                        </h2>
+                        <div class="flex items-center justify-between mb-2">
+                            <h2 class="text-sm font-bold text-gray-500">My Projects</h2>
+                            <button type="button" onclick="openMyProjects('cloud')" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center">
+                                <i class="fa-solid fa-angle-right"></i>
+                            </button>
+                        </div>
                         <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1">
-                            <div class="min-w-[230px] h-24 rounded-2xl bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-400 text-white flex items-center px-4 shadow-md flex-shrink-0 cursor-pointer active:scale-95 transition">
-                                <div class="flex-1">
-                                    <p class="text-xs font-semibold opacity-80">本周精选</p>
-                                    <p class="text-sm font-bold mt-0.5 truncate">城市篮球联赛 · 决赛夜高光征集</p>
-                                    <p class="text-[11px] opacity-80 mt-1">提交高光作品，有机会上精选看板</p>
+                            <button type="button" onclick="openMyProjects('drafts')" class="min-w-[120px] h-[76px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition relative">
+                                <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-90" alt="草稿">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                <span class="absolute top-2 left-2 bg-black/45 backdrop-blur text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">2026/02/11</span>
+                                <span class="absolute left-2 bottom-2 text-white text-[11px] font-bold">扣篮集锦</span>
+                            </button>
+                            <button type="button" onclick="openMyProjects('drafts')" class="min-w-[120px] h-[76px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition relative">
+                                <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-90" alt="已导出">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                <span class="absolute top-2 left-2 bg-black/45 backdrop-blur text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">2026/01/25</span>
+                                <span class="absolute left-2 bottom-2 text-white text-[11px] font-bold">压哨三分</span>
+                            </button>
+                            <button type="button" onclick="openMyProjects('drafts')" class="min-w-[120px] h-[76px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition relative">
+                                <img src="https://images.unsplash.com/photo-1542652735873-fb2825bac6e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-90" alt="云空间">
+                                <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                <span class="absolute top-2 left-2 bg-black/45 backdrop-blur text-white text-[10px] px-2 py-0.5 rounded-full font-semibold">2025/11/11</span>
+                                <span class="absolute left-2 bottom-2 text-white text-[11px] font-bold">球星复刻</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- Recommend（广告活动位）：优质用户作品 -->
+                    <section>
+                        <div class="flex items-center justify-between mb-2">
+                            <h2 class="text-sm font-bold text-gray-500">Recommend（广告活动位）</h2>
+                            <button type="button" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center">
+                                <span class="mr-1">更多</span><i class="fa-solid fa-angle-right"></i>
+                            </button>
+                        </div>
+                        <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1 pb-1">
+                            <div class="min-w-[150px] w-[150px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition">
+                                <div class="relative w-full h-[92px] bg-gray-200">
+                                    <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" class="w-full h-full object-cover" alt="推荐作品">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                    <div class="absolute left-2 bottom-2 text-white text-[10px] flex items-center gap-2">
+                                        <span class="px-1.5 py-0.5 rounded bg-black/40 backdrop-blur">12.6万 播放</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-black/40 backdrop-blur"><i class="fa-solid fa-heart mr-1 text-[9px]"></i>8.2k</span>
+                                    </div>
+                                    <div class="absolute right-2 top-2 w-7 h-7 rounded-full bg-white/25 backdrop-blur flex items-center justify-center">
+                                        <i class="fa-solid fa-play text-white text-[12px] ml-0.5"></i>
+                                    </div>
                                 </div>
-                                <i class="fa-solid fa-arrow-right text-xs opacity-80 ml-2"></i>
+                                <div class="p-2">
+                                    <p class="text-[12px] font-bold text-gray-900 truncate">神级反击 · 三连快攻</p>
+                                    <p class="text-[10px] text-gray-400 mt-0.5 truncate">来自：用户精选</p>
+                                </div>
                             </div>
-                            <div class="min-w-[230px] h-24 rounded-2xl bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 text-white flex items-center px-4 shadow-md flex-shrink-0 cursor-pointer active:scale-95 transition">
-                                <div class="flex-1">
-                                    <p class="text-xs font-semibold opacity-80">运营活动</p>
-                                    <p class="text-sm font-bold mt-0.5 truncate">校园运动会 · AI 精彩集锦模板限免</p>
-                                    <p class="text-[11px] opacity-80 mt-1">使用指定模板导出可参与抽奖</p>
+
+                            <div class="min-w-[150px] w-[150px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition">
+                                <div class="relative w-full h-[92px] bg-gray-200">
+                                    <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" class="w-full h-full object-cover" alt="推荐作品">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                    <div class="absolute left-2 bottom-2 text-white text-[10px] flex items-center gap-2">
+                                        <span class="px-1.5 py-0.5 rounded bg-black/40 backdrop-blur">7.8万 播放</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-black/40 backdrop-blur"><i class="fa-solid fa-heart mr-1 text-[9px]"></i>5.1k</span>
+                                    </div>
+                                    <div class="absolute right-2 top-2 w-7 h-7 rounded-full bg-white/25 backdrop-blur flex items-center justify-center">
+                                        <i class="fa-solid fa-play text-white text-[12px] ml-0.5"></i>
+                                    </div>
                                 </div>
-                                <i class="fa-solid fa-arrow-right text-xs opacity-80 ml-2"></i>
+                                <div class="p-2">
+                                    <p class="text-[12px] font-bold text-gray-900 truncate">压哨三分 · 绝杀瞬间</p>
+                                    <p class="text-[10px] text-gray-400 mt-0.5 truncate">来自：用户精选</p>
+                                </div>
+                            </div>
+
+                            <div class="min-w-[150px] w-[150px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition">
+                                <div class="relative w-full h-[92px] bg-gray-200">
+                                    <img src="https://images.unsplash.com/photo-1542652735873-fb2825bac6e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" class="w-full h-full object-cover" alt="推荐作品">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                                    <div class="absolute left-2 bottom-2 text-white text-[10px] flex items-center gap-2">
+                                        <span class="px-1.5 py-0.5 rounded bg-black/40 backdrop-blur">3.1万 播放</span>
+                                        <span class="px-1.5 py-0.5 rounded bg-black/40 backdrop-blur"><i class="fa-solid fa-heart mr-1 text-[9px]"></i>2.3k</span>
+                                    </div>
+                                    <div class="absolute right-2 top-2 w-7 h-7 rounded-full bg-white/25 backdrop-blur flex items-center justify-center">
+                                        <i class="fa-solid fa-play text-white text-[12px] ml-0.5"></i>
+                                    </div>
+                                </div>
+                                <div class="p-2">
+                                    <p class="text-[12px] font-bold text-gray-900 truncate">脚步教学 · 拜佛变向</p>
+                                    <p class="text-[10px] text-gray-400 mt-0.5 truncate">来自：用户精选</p>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -193,7 +232,6 @@
                         <div class="flex space-x-6 items-end">
                             <button id="draftsBackButton" onclick="restoreStudioHome()" class="hidden text-gray-600 pb-0.5 active:opacity-50 transition -mr-2"><i class="fa-solid fa-chevron-left text-sm"></i></button>
                             <button class="text-[#FF5028] font-bold text-sm border-b-2 border-[#FF5028] pb-2 -mb-[10px] transition-colors" id="mainTabTemplate" onclick="switchMainTab('template')">模板</button>
-                            <button class="text-gray-400 font-bold text-sm transition-colors" id="mainTabDrafts" onclick="switchMainTab('drafts')">草稿</button>
                         </div>
                         <!-- 新增：首页草稿箱的查看全部按钮 -->
                         <button onclick="viewAllDrafts()" id="draftsViewAllBtn" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center mb-1">
@@ -203,59 +241,103 @@
 
                     <!-- 模板与草稿内容区 -->
                     <div id="templateContent" class="space-y-4 pb-10">
-                        <!-- 模板类型筛选：聚焦足篮棒球冰 4–5 个场景 -->
-                        <div class="flex flex-wrap items-center mb-1 gap-2 text-xs">
-                            <button type="button" data-template-filter="all" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-900 text-white font-semibold">
-                                推荐
-                            </button>
-                            <button type="button" data-template-filter="highlight" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                                比赛集锦
-                            </button>
-                            <button type="button" data-template-filter="player" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                                球员个人秀
-                            </button>
-                            <button type="button" data-template-filter="battle" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                                战报 & 战术
-                            </button>
-                            <button type="button" data-template-filter="effect" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                                炫酷特效
-                            </button>
-                            <button type="button" data-template-filter="train" class="template-filter-chip px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-medium">
-                                训练 & 练习
-                            </button>
-                        </div>
+                        <!-- 三大模板类目（原型）：进球集锦 / 高光瞬间 / 球星名场面复刻 -->
+                        <div class="space-y-5">
+                            <!-- 进球集锦类 -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-sm font-bold text-gray-700">进球集锦类</h3>
+                                    <button type="button" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
+                                        more <i class="fa-solid fa-angle-right ml-1"></i>
+                                    </button>
+                                </div>
+                                <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1">
+                                    <button type="button" onclick="openAigcTemplateFlow('goal-highlight')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
+                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                            <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
+                                            <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
+                                        </div>
+                                        <div class="p-2.5">
+                                            <p class="text-[12px] font-extrabold text-gray-900 truncate">进球集锦 · 自动卡点</p>
+                                            <p class="text-[10px] text-gray-400 mt-0.5 truncate">适配足球/篮球进球与得分</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" onclick="openStandardTemplateFlow('goal-recap')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
+                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                            <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
+                                            <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
+                                        </div>
+                                        <div class="p-2.5">
+                                            <p class="text-[12px] font-extrabold text-gray-900 truncate">进球回顾 · 记分板</p>
+                                            <p class="text-[10px] text-gray-400 mt-0.5 truncate">比分/球队/球员信息快速套版</p>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
 
-                        <!-- 模板占位卡片：后续可替换为真实付费/活动模板列表 -->
-                        <div
-                            class="template-card flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer active:bg-gray-50 hover:shadow-md transition"
-                            data-tags="effect,highlight,match,recommend"
-                            onclick="openAigcTemplateFlow('highlight')"
-                        >
-                            <div class="w-24 h-20 bg-gradient-to-br from-orange-500 to-rose-500 rounded-xl relative overflow-hidden flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                                AI 精彩集锦
-                                <span class="absolute top-1 left-1 bg-white/90 text-orange-500 text-[10px] px-1.5 py-0.5 rounded-sm font-semibold">AI 模板</span>
+                            <!-- 高光瞬间 -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-sm font-bold text-gray-700">高光瞬间</h3>
+                                    <button type="button" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
+                                        more <i class="fa-solid fa-angle-right ml-1"></i>
+                                    </button>
+                                </div>
+                                <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1">
+                                    <button type="button" onclick="openAigcTemplateFlow('moment-slam')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
+                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                            <img src="https://images.unsplash.com/photo-1542652735873-fb2825bac6e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
+                                            <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
+                                        </div>
+                                        <div class="p-2.5">
+                                            <p class="text-[12px] font-extrabold text-gray-900 truncate">高光瞬间 · 炫酷特效</p>
+                                            <p class="text-[10px] text-gray-400 mt-0.5 truncate">适合扣篮/封盖/超远三分</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" onclick="openStandardTemplateFlow('moment-replay')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
+                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                            <img src="https://images.unsplash.com/photo-1515523110800-9415d13b84a8?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
+                                            <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
+                                        </div>
+                                        <div class="p-2.5">
+                                            <p class="text-[12px] font-extrabold text-gray-900 truncate">高光回放 · 慢动作</p>
+                                            <p class="text-[10px] text-gray-400 mt-0.5 truncate">一键生成回放字幕与转场</p>
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="text-sm font-semibold text-gray-900 truncate">AI 精彩集锦模板</h3>
-                                <p class="text-xs text-gray-400 mt-1 line-clamp-2">一键生成比赛高光集锦，适合校园联赛、城市赛事等场景，可衔接 AI highlight 结果继续包装。</p>
-                            </div>
-                            <span class="text-[11px] text-orange-500 font-bold border border-orange-100 rounded-full px-2 py-0.5">限免体验</span>
-                        </div>
 
-                        <div
-                            class="template-card flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100 cursor-pointer active:bg-gray-50 hover:shadow-md transition"
-                            data-tags="battle,match,recommend"
-                            onclick="openStandardTemplateFlow('battle-report')"
-                        >
-                            <div class="w-24 h-20 bg-gradient-to-br from-sky-500 to-indigo-500 rounded-xl relative overflow-hidden flex-shrink-0 flex items-center justify-center text-white text-xs font-bold">
-                                赛事战报
-                                <span class="absolute top-1 left-1 bg-white/90 text-sky-600 text-[10px] px-1.5 py-0.5 rounded-sm font-semibold">模板</span>
+                            <!-- 球星名场面复刻 -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-sm font-bold text-gray-700">球星名场面复刻</h3>
+                                    <button type="button" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
+                                        more <i class="fa-solid fa-angle-right ml-1"></i>
+                                    </button>
+                                </div>
+                                <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1">
+                                    <button type="button" onclick="openAigcTemplateFlow('star-imitation')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
+                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                            <img src="https://images.unsplash.com/photo-1505666287802-931dc83948e9?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
+                                            <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
+                                        </div>
+                                        <div class="p-2.5">
+                                            <p class="text-[12px] font-extrabold text-gray-900 truncate">名场面 · 镜头复刻</p>
+                                            <p class="text-[10px] text-gray-400 mt-0.5 truncate">自动对齐节奏、机位与字幕</p>
+                                        </div>
+                                    </button>
+                                    <button type="button" onclick="openStandardTemplateFlow('star-poster')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
+                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                            <img src="https://images.unsplash.com/photo-1578356920658-9411648aee7d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
+                                            <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
+                                        </div>
+                                        <div class="p-2.5">
+                                            <p class="text-[12px] font-extrabold text-gray-900 truncate">球星海报 · 片头片尾</p>
+                                            <p class="text-[10px] text-gray-400 mt-0.5 truncate">一键生成球员信息与封面</p>
+                                        </div>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="text-sm font-semibold text-gray-900 truncate">赛事战报混剪模板</h3>
-                                <p class="text-xs text-gray-400 mt-1 line-clamp-2">自动生成比分板、MVP 镜头等，适合运营战报内容。</p>
-                            </div>
-                            <span class="text-[11px] text-gray-400 border border-gray-200 rounded-full px-2 py-0.5">更多模板即将上线</span>
                         </div>
                     </div>
 
@@ -330,16 +412,53 @@
                 </div>
             </div>
 
-            <!-- 页面：草稿箱（创作中心二级页） -->
+            <!-- 页面：我的项目（创作中心二级页） -->
             <div id="pageCreateCenter" class="page-view hidden px-5 pt-4">
-                <div class="flex items-center gap-3 mb-4">
+                <div class="flex items-center gap-3 mb-3">
                     <button type="button" onclick="backToCreationCenterHome()" class="p-2 -ml-2 text-gray-600 active:opacity-70" aria-label="返回"><i class="fa-solid fa-chevron-left text-lg"></i></button>
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900">草稿箱</h2>
-                        <p class="text-xs text-gray-400 mt-0.5">集中查看和管理所有草稿与工程项目，可继续编辑或重新导出。</p>
+                        <h2 class="text-lg font-semibold text-gray-900">我的项目</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">云空间、草稿箱与成功导出视频统一管理。</p>
                     </div>
                 </div>
-                <div class="space-y-3">
+                <div class="flex items-center bg-gray-100 rounded-full p-[3px] mb-4">
+                    <button id="myProjectsTabCloud" type="button" onclick="switchMyProjectsTab('cloud')" class="flex-1 text-[13px] font-bold py-2 rounded-full bg-white text-gray-900 shadow-sm">
+                        云空间
+                    </button>
+                    <button id="myProjectsTabDrafts" type="button" onclick="switchMyProjectsTab('drafts')" class="flex-1 text-[13px] font-bold py-2 rounded-full text-gray-500">
+                        草稿箱
+                    </button>
+                    <button id="myProjectsTabExported" type="button" onclick="switchMyProjectsTab('exported')" class="flex-1 text-[13px] font-bold py-2 rounded-full text-gray-500">
+                        已导出
+                    </button>
+                </div>
+
+                <!-- 云空间 -->
+                <div id="myProjectsCloud" class="space-y-3">
+                    <div class="flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="w-20 h-16 rounded-xl relative overflow-hidden flex-shrink-0 bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center text-white">
+                            <i class="fa-solid fa-cloud text-xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-gray-900 truncate">城市联赛·半决赛（云工程）</p>
+                            <p class="text-[11px] text-gray-400 mt-1">云空间 · Updated 03-11 14:02</p>
+                        </div>
+                        <button class="text-[11px] font-bold text-[#FF5028]" onclick="openNewProjectFlow()">打开</button>
+                    </div>
+                    <div class="flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="w-20 h-16 rounded-xl relative overflow-hidden flex-shrink-0 bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white">
+                            <i class="fa-solid fa-cloud-arrow-up text-xl"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-gray-900 truncate">训练日常·多机位素材（云工程）</p>
+                            <p class="text-[11px] text-gray-400 mt-1">云空间 · Updated 03-10 20:18</p>
+                        </div>
+                        <button class="text-[11px] font-bold text-[#FF5028]" onclick="openNewProjectFlow()">打开</button>
+                    </div>
+                </div>
+
+                <!-- 草稿箱 -->
+                <div id="myProjectsDrafts" class="space-y-3 hidden">
                     <div class="flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
                         <div class="w-20 h-16 bg-gray-800 rounded-xl relative overflow-hidden flex-shrink-0">
                             <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-80" alt="篮球">
@@ -360,7 +479,23 @@
                             <p class="text-[13px] font-semibold text-gray-900 truncate">2026-04-01 比赛集锦</p>
                             <p class="text-[11px] text-gray-400 mt-1">10.8 MB · 上次编辑 03-11 15:26</p>
                         </div>
-                        <button class="text-[11px] font-bold text-[#FF5028]" onclick="viewHistoryResult()">查看成片</button>
+                        <button class="text-[11px] font-bold text-[#FF5028]" onclick="openNewProjectFlow()">继续编辑</button>
+                    </div>
+                </div>
+
+                <!-- 已导出 -->
+                <div id="myProjectsExported" class="space-y-3 hidden">
+                    <div class="flex items-center space-x-3 bg-white px-4 py-3 rounded-2xl shadow-sm border border-gray-100">
+                        <div class="w-20 h-16 bg-gray-800 rounded-xl relative overflow-hidden flex-shrink-0">
+                            <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=300&q=80" class="w-full h-full object-cover opacity-80" alt="已导出视频">
+                            <span class="absolute top-1 left-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded-sm flex items-center"><i class="fa-solid fa-circle-check mr-1 text-[8px]"></i>已导出</span>
+                            <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1 rounded">00:00:49</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[13px] font-semibold text-gray-900 truncate">2026-04-01 比赛集锦（最终版）</p>
+                            <p class="text-[11px] text-gray-400 mt-1">已导出 · 03-11 15:40</p>
+                        </div>
+                        <button class="text-[11px] font-bold text-[#FF5028]" onclick="viewHistoryResult()">查看</button>
                     </div>
                 </div>
             </div>
@@ -1142,25 +1277,20 @@
             const templateContent = document.getElementById('templateContent');
             const draftsContent = document.getElementById('draftsContent');
 
-            const isDrafts = tab === 'drafts';
+            // 首页不再提供“草稿”tab（草稿统一进「我的项目」管理）
+            if (tab === 'drafts') {
+                openMyProjects('drafts');
+                return;
+            }
 
-            if (isDrafts) {
-                draftsTab.className = "text-[#FF5028] font-bold text-sm border-b-2 border-[#FF5028] pb-2 -mb-[10px] transition-colors";
-                templateTab.className = "text-gray-400 font-bold text-sm pb-2 transition-colors";
-            } else {
+            if (templateTab) {
                 templateTab.className = "text-[#FF5028] font-bold text-sm border-b-2 border-[#FF5028] pb-2 -mb-[10px] transition-colors";
+            }
+            if (draftsTab) {
                 draftsTab.className = "text-gray-400 font-bold text-sm pb-2 transition-colors";
             }
-
-            if (templateContent && draftsContent) {
-                if (isDrafts) {
-                    templateContent.classList.add('hidden');
-                    draftsContent.classList.remove('hidden');
-                } else {
-                    draftsContent.classList.add('hidden');
-                    templateContent.classList.remove('hidden');
-                }
-            }
+            if (templateContent) templateContent.classList.remove('hidden');
+            if (draftsContent) draftsContent.classList.add('hidden');
         }
 
         /* --- 模板筛选逻辑：推荐 / 比赛集锦 / 球员个人秀 / 战报&战术 / 炫酷特效 / 训练&练习 --- */
@@ -1205,16 +1335,50 @@
             });
         }
 
-        function viewAllDrafts() {
-            // 从创作中心首页进入草稿箱（二级页）
-            document.getElementById('pageHome').classList.add('hidden');
-            document.getElementById('pageCreateCenter').classList.remove('hidden');
+        function openMyProjects(defaultTab = 'cloud') {
+            // 从首页进入「我的项目」二级页（云空间/草稿箱/已导出）
+            const home = document.getElementById('pageHome');
+            const projects = document.getElementById('pageCreateCenter');
+            if (home) home.classList.add('hidden');
+            if (projects) projects.classList.remove('hidden');
             document.getElementById('mainScrollContainer').scrollTop = 0;
             closeAiAnalysisModal();
+            switchMyProjectsTab(defaultTab);
+        }
+
+        function switchMyProjectsTab(tab) {
+            const cloudBtn = document.getElementById('myProjectsTabCloud');
+            const draftsBtn = document.getElementById('myProjectsTabDrafts');
+            const exportedBtn = document.getElementById('myProjectsTabExported');
+
+            const cloudView = document.getElementById('myProjectsCloud');
+            const draftsView = document.getElementById('myProjectsDrafts');
+            const exportedView = document.getElementById('myProjectsExported');
+
+            const setBtn = (btn, active) => {
+                if (!btn) return;
+                btn.classList.toggle('bg-white', active);
+                btn.classList.toggle('text-gray-900', active);
+                btn.classList.toggle('shadow-sm', active);
+                btn.classList.toggle('text-gray-500', !active);
+            };
+
+            setBtn(cloudBtn, tab === 'cloud');
+            setBtn(draftsBtn, tab === 'drafts');
+            setBtn(exportedBtn, tab === 'exported');
+
+            if (cloudView) cloudView.classList.toggle('hidden', tab !== 'cloud');
+            if (draftsView) draftsView.classList.toggle('hidden', tab !== 'drafts');
+            if (exportedView) exportedView.classList.toggle('hidden', tab !== 'exported');
+        }
+
+        function viewAllDrafts() {
+            // 兼容旧入口：默认打开草稿箱 tab
+            openMyProjects('drafts');
         }
 
         function backToCreationCenterHome() {
-            // 从草稿箱返回创作中心首页（Studio）
+            // 从「我的项目」返回创作中心首页（Edit）
             document.getElementById('pageCreateCenter').classList.add('hidden');
             document.getElementById('pageHome').classList.remove('hidden');
             document.getElementById('mainScrollContainer').scrollTop = 0;
