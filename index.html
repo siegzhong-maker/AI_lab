@@ -104,14 +104,14 @@
                         <div class="grid grid-cols-2 gap-3">
                             <button
                                 type="button"
-                                onclick="openSmartMergeFromMarkers()"
-                                class="bg-white rounded-2xl border border-gray-200 px-4 py-4 shadow-sm active:scale-95 transition text-left"
+                                class="bg-white rounded-2xl border border-gray-200 px-4 py-4 shadow-sm text-left opacity-50 cursor-not-allowed"
+                                aria-disabled="true"
                             >
                                 <div class="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center mb-2">
                                     <i class="fa-solid fa-wand-magic-sparkles text-lg"></i>
                                 </div>
                                 <p class="text-[14px] font-extrabold text-gray-900 leading-tight">AI Editor</p>
-                                <p class="text-[11px] text-gray-400 mt-1">一键成片</p>
+                                <p class="text-[11px] text-gray-400 mt-1">一键成片（梳理中）</p>
                             </button>
 
                             <button
@@ -162,7 +162,7 @@
                     <section>
                         <div class="flex items-center justify-between mb-2">
                             <h2 class="text-sm font-bold text-gray-500">Recommend</h2>
-                            <button type="button" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center">
+                            <button type="button" onclick="openRecommendAllPage()" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center">
                                 <span class="mr-1">更多</span><i class="fa-solid fa-angle-right"></i>
                             </button>
                         </div>
@@ -234,7 +234,7 @@
                             <button class="text-[#FF5028] font-bold text-sm border-b-2 border-[#FF5028] pb-2 -mb-[10px] transition-colors" id="mainTabTemplate" onclick="switchMainTab('template')">模板</button>
                         </div>
                         <!-- 新增：首页草稿箱的查看全部按钮 -->
-                        <button onclick="viewAllDrafts()" id="draftsViewAllBtn" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center mb-1">
+                        <button onclick="openTemplatesAllPage()" id="draftsViewAllBtn" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center mb-1">
                             查看全部 <i class="fa-solid fa-angle-right ml-1"></i>
                         </button>
                     </div>
@@ -245,13 +245,13 @@
                         <div class="flex items-center justify-between">
                             <p class="text-[12px] font-bold text-gray-500">比例</p>
                             <div class="flex items-center gap-2 text-[12px]">
-                                <button id="templateAspect169" type="button" onclick="setTemplateAspect('16/9')" class="px-3 py-1.5 rounded-full bg-gray-900 text-white font-bold active:scale-95 transition">
+                                <button type="button" data-aspect="16/9" onclick="setTemplateAspect('16/9')" class="template-aspect-btn px-3 py-1.5 rounded-full bg-gray-900 text-white font-bold active:scale-95 transition">
                                     16:9
                                 </button>
-                                <button id="templateAspect916" type="button" onclick="setTemplateAspect('9/16')" class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold active:scale-95 transition">
+                                <button type="button" data-aspect="9/16" onclick="setTemplateAspect('9/16')" class="template-aspect-btn px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold active:scale-95 transition">
                                     9:16
                                 </button>
-                                <button id="templateAspect11" type="button" onclick="setTemplateAspect('1/1')" class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold active:scale-95 transition">
+                                <button type="button" data-aspect="1/1" onclick="setTemplateAspect('1/1')" class="template-aspect-btn px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold active:scale-95 transition">
                                     1:1
                                 </button>
                             </div>
@@ -262,7 +262,7 @@
                             <div>
                                 <div class="flex items-center justify-between mb-2">
                                     <h3 class="text-sm font-bold text-gray-700">进球集锦类</h3>
-                                    <button type="button" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
+                                    <button type="button" onclick="openTemplatesAllPage('goal')" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
                                         more <i class="fa-solid fa-angle-right ml-1"></i>
                                     </button>
                                 </div>
@@ -294,7 +294,7 @@
                             <div>
                                 <div class="flex items-center justify-between mb-2">
                                     <h3 class="text-sm font-bold text-gray-700">高光瞬间</h3>
-                                    <button type="button" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
+                                    <button type="button" onclick="openTemplatesAllPage('moment')" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
                                         more <i class="fa-solid fa-angle-right ml-1"></i>
                                     </button>
                                 </div>
@@ -326,7 +326,7 @@
                             <div>
                                 <div class="flex items-center justify-between mb-2">
                                     <h3 class="text-sm font-bold text-gray-700">球星名场面复刻</h3>
-                                    <button type="button" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
+                                    <button type="button" onclick="openTemplatesAllPage('star')" class="text-[12px] text-gray-400 flex items-center active:text-gray-700 transition">
                                         more <i class="fa-solid fa-angle-right ml-1"></i>
                                     </button>
                                 </div>
@@ -412,6 +412,148 @@
                 <button class="mt-6 w-full bg-black text-white text-[14px] font-bold py-3 rounded-2xl active:scale-95 transition" onclick="openNewProjectFlow()">
                     选中素材后新建项目
                 </button>
+            </div>
+
+            <!-- 页面：全部模板（独立页） -->
+            <div id="pageTemplatesAll" class="page-view hidden px-5 pt-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <button type="button" onclick="closeTemplatesAllPage()" class="p-2 -ml-2 text-gray-600 active:opacity-70" aria-label="返回"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-semibold text-gray-900">全部模板</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">浏览所有模板，支持 16:9 / 9:16 / 1:1 预览比例。</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between mb-4">
+                    <p class="text-[12px] font-bold text-gray-500">比例</p>
+                    <div class="flex items-center gap-2 text-[12px]">
+                        <button type="button" data-aspect="16/9" onclick="setTemplateAspect('16/9')" class="template-aspect-btn px-3 py-1.5 rounded-full bg-gray-900 text-white font-bold active:scale-95 transition">16:9</button>
+                        <button type="button" data-aspect="9/16" onclick="setTemplateAspect('9/16')" class="template-aspect-btn px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold active:scale-95 transition">9:16</button>
+                        <button type="button" data-aspect="1/1" onclick="setTemplateAspect('1/1')" class="template-aspect-btn px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold active:scale-95 transition">1:1</button>
+                    </div>
+                </div>
+
+                <div class="space-y-6 pb-10">
+                    <section id="templatesAllGoal">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-extrabold text-gray-900">进球集锦类</h3>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" onclick="openAigcTemplateFlow('goal-highlight')" class="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition text-left">
+                                <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
+                                    <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="模板">
+                                    <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
+                                </div>
+                                <div class="p-3">
+                                    <p class="text-[13px] font-extrabold text-gray-900 truncate">进球集锦 · 自动卡点</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5 truncate">适配足球/篮球进球与得分</p>
+                                </div>
+                            </button>
+                            <button type="button" onclick="openStandardTemplateFlow('goal-recap')" class="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition text-left">
+                                <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
+                                    <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="模板">
+                                    <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
+                                </div>
+                                <div class="p-3">
+                                    <p class="text-[13px] font-extrabold text-gray-900 truncate">进球回顾 · 记分板</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5 truncate">比分/球队/球员信息快速套版</p>
+                                </div>
+                            </button>
+                        </div>
+                    </section>
+
+                    <section id="templatesAllMoment">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-extrabold text-gray-900">高光瞬间</h3>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" onclick="openAigcTemplateFlow('moment-slam')" class="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition text-left">
+                                <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
+                                    <img src="https://images.unsplash.com/photo-1542652735873-fb2825bac6e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="模板">
+                                    <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
+                                </div>
+                                <div class="p-3">
+                                    <p class="text-[13px] font-extrabold text-gray-900 truncate">高光瞬间 · 炫酷特效</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5 truncate">适合扣篮/封盖/超远三分</p>
+                                </div>
+                            </button>
+                            <button type="button" onclick="openStandardTemplateFlow('moment-replay')" class="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition text-left">
+                                <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
+                                    <img src="https://images.unsplash.com/photo-1515523110800-9415d13b84a8?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="模板">
+                                    <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
+                                </div>
+                                <div class="p-3">
+                                    <p class="text-[13px] font-extrabold text-gray-900 truncate">高光回放 · 慢动作</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5 truncate">一键生成回放字幕与转场</p>
+                                </div>
+                            </button>
+                        </div>
+                    </section>
+
+                    <section id="templatesAllStar">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-sm font-extrabold text-gray-900">球星名场面复刻</h3>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button type="button" onclick="openAigcTemplateFlow('star-imitation')" class="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition text-left">
+                                <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
+                                    <img src="https://images.unsplash.com/photo-1505666287802-931dc83948e9?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="模板">
+                                    <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
+                                </div>
+                                <div class="p-3">
+                                    <p class="text-[13px] font-extrabold text-gray-900 truncate">名场面 · 镜头复刻</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5 truncate">自动对齐节奏、机位与字幕</p>
+                                </div>
+                            </button>
+                            <button type="button" onclick="openStandardTemplateFlow('star-poster')" class="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition text-left">
+                                <div class="template-cover relative w-full bg-gradient-to-br from-gray-200 to-gray-100" style="aspect-ratio: 16 / 9;">
+                                    <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="模板" loading="lazy">
+                                    <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
+                                </div>
+                                <div class="p-3">
+                                    <p class="text-[13px] font-extrabold text-gray-900 truncate">球星海报 · 片头片尾</p>
+                                    <p class="text-[11px] text-gray-400 mt-0.5 truncate">一键生成球员信息与封面</p>
+                                </div>
+                            </button>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- 页面：Recommend 广告位（独立页） -->
+            <div id="pageRecommendAll" class="page-view hidden px-5 pt-4">
+                <div class="flex items-center gap-3 mb-3">
+                    <button type="button" onclick="closeRecommendAllPage()" class="p-2 -ml-2 text-gray-600 active:opacity-70" aria-label="返回"><i class="fa-solid fa-chevron-left text-lg"></i></button>
+                    <div class="flex-1">
+                        <h2 class="text-lg font-semibold text-gray-900">Recommend</h2>
+                        <p class="text-xs text-gray-400 mt-0.5">全部广告位（示例占位，可替换真实投放）。</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 pb-10">
+                    <button type="button" class="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition text-left">
+                        <div class="relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
+                            <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="广告位">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                            <span class="absolute left-2 bottom-2 text-white text-[10px] font-bold">活动位 · 模板限免</span>
+                        </div>
+                        <div class="p-3">
+                            <p class="text-[13px] font-extrabold text-gray-900 truncate">校园运动会 · 模板限免</p>
+                            <p class="text-[11px] text-gray-400 mt-0.5 truncate">点击进入活动详情（占位）</p>
+                        </div>
+                    </button>
+                    <button type="button" class="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden active:scale-[0.99] transition text-left">
+                        <div class="relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
+                            <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" class="w-full h-full object-cover" alt="广告位">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                            <span class="absolute left-2 bottom-2 text-white text-[10px] font-bold">品牌位 · 联名挑战</span>
+                        </div>
+                        <div class="p-3">
+                            <p class="text-[13px] font-extrabold text-gray-900 truncate">决赛夜 · 联名挑战赛</p>
+                            <p class="text-[11px] text-gray-400 mt-0.5 truncate">点击进入活动详情（占位）</p>
+                        </div>
+                    </button>
+                </div>
             </div>
 
             <!-- 页面：相机 / 设备 -->
@@ -1367,25 +1509,63 @@
         function setTemplateAspect(aspect) {
             currentTemplateAspect = aspect;
 
-            const btn169 = document.getElementById('templateAspect169');
-            const btn916 = document.getElementById('templateAspect916');
-            const btn11 = document.getElementById('templateAspect11');
-
-            const setBtnActive = (btn, active) => {
-                if (!btn) return;
+            document.querySelectorAll('.template-aspect-btn').forEach(btn => {
+                const btnAspect = btn.getAttribute('data-aspect') || '';
+                const active = btnAspect === aspect;
                 btn.classList.toggle('bg-gray-900', active);
                 btn.classList.toggle('text-white', active);
                 btn.classList.toggle('bg-gray-100', !active);
                 btn.classList.toggle('text-gray-600', !active);
-            };
-
-            setBtnActive(btn169, aspect === '16/9');
-            setBtnActive(btn916, aspect === '9/16');
-            setBtnActive(btn11, aspect === '1/1');
+            });
 
             document.querySelectorAll('.template-cover').forEach(el => {
                 el.style.aspectRatio = aspect.replace('/', ' / ');
             });
+        }
+
+        function openTemplatesAllPage(section) {
+            // 进入独立「全部模板」页
+            const home = document.getElementById('pageHome');
+            const page = document.getElementById('pageTemplatesAll');
+            if (home) home.classList.add('hidden');
+            if (page) page.classList.remove('hidden');
+            document.getElementById('mainScrollContainer').scrollTop = 0;
+
+            if (typeof setTemplateAspect === 'function') setTemplateAspect(currentTemplateAspect || '16/9');
+
+            const jump = (id) => {
+                const el = document.getElementById(id);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            };
+            if (section === 'goal') jump('templatesAllGoal');
+            if (section === 'moment') jump('templatesAllMoment');
+            if (section === 'star') jump('templatesAllStar');
+        }
+
+        function closeTemplatesAllPage() {
+            const page = document.getElementById('pageTemplatesAll');
+            const home = document.getElementById('pageHome');
+            if (page) page.classList.add('hidden');
+            if (home) home.classList.remove('hidden');
+            document.getElementById('mainScrollContainer').scrollTop = 0;
+            setBottomTab('create');
+        }
+
+        function openRecommendAllPage() {
+            const home = document.getElementById('pageHome');
+            const page = document.getElementById('pageRecommendAll');
+            if (home) home.classList.add('hidden');
+            if (page) page.classList.remove('hidden');
+            document.getElementById('mainScrollContainer').scrollTop = 0;
+        }
+
+        function closeRecommendAllPage() {
+            const page = document.getElementById('pageRecommendAll');
+            const home = document.getElementById('pageHome');
+            if (page) page.classList.add('hidden');
+            if (home) home.classList.remove('hidden');
+            document.getElementById('mainScrollContainer').scrollTop = 0;
+            setBottomTab('create');
         }
 
         /* --- 首页 Tab 与查看全部交互 --- */
@@ -1517,7 +1697,7 @@
         }
 
         function switchPageView(tab) {
-            // 创作中心 tab 显示创作中心首页（Studio），草稿箱为二级页由 viewAllDrafts 进入
+            // 底部 tab 切换：先隐藏全部 page-view，再显示目标页
             const mapping = {
                 home: 'pageHome',
                 gallery: 'pageGallery',
@@ -1525,16 +1705,11 @@
                 create: 'pageHome',
                 account: 'pageAccount'
             };
-            Object.keys(mapping).forEach(key => {
-                const id = mapping[key];
-                const el = document.getElementById(id);
-                if (!el) return;
-                if (key === tab) {
-                    el.classList.remove('hidden');
-                } else {
-                    el.classList.add('hidden');
-                }
-            });
+
+            document.querySelectorAll('.page-view').forEach(el => el.classList.add('hidden'));
+            const targetId = mapping[tab];
+            const target = targetId ? document.getElementById(targetId) : null;
+            if (target) target.classList.remove('hidden');
         }
 
         function setBottomTab(tab) {
