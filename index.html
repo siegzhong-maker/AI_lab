@@ -93,7 +93,7 @@
             <div id="studioTopContent">
                 <div class="px-5 pt-4 pb-3 bg-gray-50 flex items-center justify-between sticky top-0 z-10">
                     <h1 class="text-xl font-bold text-gray-900 tracking-wide">Edit</h1>
-                    <button type="button" class="text-[12px] font-bold text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 bg-white active:scale-95 transition">
+                    <button type="button" onclick="openToolboxSheet()" class="text-[12px] font-bold text-gray-700 px-3 py-1.5 rounded-full border border-gray-200 bg-white active:scale-95 transition">
                         工具箱 <i class="fa-solid fa-sliders ml-1 text-[11px] text-gray-500"></i>
                     </button>
                 </div>
@@ -158,10 +158,10 @@
                         </div>
                     </section>
 
-                    <!-- Recommend（广告活动位）：优质用户作品 -->
+                    <!-- Recommend：优质用户作品 -->
                     <section>
                         <div class="flex items-center justify-between mb-2">
-                            <h2 class="text-sm font-bold text-gray-500">Recommend（广告活动位）</h2>
+                            <h2 class="text-sm font-bold text-gray-500">Recommend</h2>
                             <button type="button" class="text-[13px] text-gray-500 active:text-gray-800 transition flex items-center">
                                 <span class="mr-1">更多</span><i class="fa-solid fa-angle-right"></i>
                             </button>
@@ -327,8 +327,8 @@
                                         </div>
                                     </button>
                                     <button type="button" onclick="openStandardTemplateFlow('star-poster')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
-                                        <div class="relative w-full h-[96px] bg-gray-200">
-                                            <img src="https://images.unsplash.com/photo-1578356920658-9411648aee7d?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
+                                        <div class="relative w-full h-[96px] bg-gradient-to-br from-gray-200 to-gray-100">
+                                            <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板" loading="lazy">
                                             <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
                                         </div>
                                         <div class="p-2.5">
@@ -537,6 +537,46 @@
                 <i class="fa-solid fa-user text-lg"></i>
                 <span>我的</span>
             </button>
+        </div>
+
+        <!-- 工具箱：快捷入口面板（打点剪辑 / 合并并导出） -->
+        <div id="toolboxSheet" class="absolute inset-0 z-50 pointer-events-none">
+            <div id="toolboxSheetBackdrop" class="absolute inset-0 bg-black/30 opacity-0 transition-opacity duration-200"></div>
+            <div id="toolboxSheetPanel" class="absolute inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl translate-y-full transition-transform duration-250 pb-8">
+                <div class="px-5 pt-4 pb-3 flex items-center justify-between">
+                    <p class="text-[15px] font-extrabold text-gray-900">工具箱</p>
+                    <button type="button" onclick="closeToolboxSheet()" class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center active:scale-95 transition" aria-label="关闭">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="px-5 space-y-3">
+                    <button type="button" onclick="toolboxOpenManualMarkerEdit()" class="w-full bg-white border border-gray-200 rounded-2xl px-4 py-4 flex items-center justify-between active:scale-[0.99] transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-red-100 text-red-500 flex items-center justify-center">
+                                <i class="fa-solid fa-flag text-lg"></i>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-[14px] font-extrabold text-gray-900">打点剪辑</p>
+                                <p class="text-[11px] text-gray-400 mt-0.5">手动标记高光并精修</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-angle-right text-gray-300"></i>
+                    </button>
+
+                    <button type="button" onclick="toolboxOpenMergeAndExport()" class="w-full bg-white border border-gray-200 rounded-2xl px-4 py-4 flex items-center justify-between active:scale-[0.99] transition">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                                <i class="fa-solid fa-layer-group text-lg"></i>
+                            </div>
+                            <div class="text-left">
+                                <p class="text-[14px] font-extrabold text-gray-900">合并并导出</p>
+                                <p class="text-[11px] text-gray-400 mt-0.5">快速合成片段并导出成片</p>
+                            </div>
+                        </div>
+                        <i class="fa-solid fa-angle-right text-gray-300"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- 通用手动剪辑：新建项目 & 手动剪辑共用工作台 -->
@@ -1270,6 +1310,42 @@
     </div>
 
     <script>
+        /* --- 工具箱面板交互：打点剪辑 / 合并并导出 --- */
+        const toolboxSheet = document.getElementById('toolboxSheet');
+        const toolboxSheetBackdrop = document.getElementById('toolboxSheetBackdrop');
+        const toolboxSheetPanel = document.getElementById('toolboxSheetPanel');
+
+        function openToolboxSheet() {
+            if (!toolboxSheet || !toolboxSheetBackdrop || !toolboxSheetPanel) return;
+            toolboxSheet.classList.remove('pointer-events-none');
+            toolboxSheetBackdrop.classList.remove('opacity-0');
+            toolboxSheetBackdrop.classList.add('opacity-100');
+            setTimeout(() => { toolboxSheetPanel.classList.remove('translate-y-full'); }, 10);
+        }
+
+        function closeToolboxSheet() {
+            if (!toolboxSheet || !toolboxSheetBackdrop || !toolboxSheetPanel) return;
+            toolboxSheetPanel.classList.add('translate-y-full');
+            toolboxSheetBackdrop.classList.remove('opacity-100');
+            toolboxSheetBackdrop.classList.add('opacity-0');
+            setTimeout(() => { toolboxSheet.classList.add('pointer-events-none'); }, 260);
+        }
+
+        if (toolboxSheetBackdrop) {
+            toolboxSheetBackdrop.addEventListener('click', closeToolboxSheet);
+        }
+
+        function toolboxOpenManualMarkerEdit() {
+            closeToolboxSheet();
+            if (typeof openManualEditorFromHome === 'function') openManualEditorFromHome();
+        }
+
+        function toolboxOpenMergeAndExport() {
+            closeToolboxSheet();
+            // 复用现有“一键成片”的合成视图，作为合并&导出入口
+            if (typeof openSmartMergeFromMarkers === 'function') openSmartMergeFromMarkers();
+        }
+
         /* --- 首页 Tab 与查看全部交互 --- */
         function switchMainTab(tab) {
             const templateTab = document.getElementById('mainTabTemplate');
