@@ -740,10 +740,11 @@
             id="floatingFaqEntry"
             type="button"
             onclick="openFaqSheet()"
-            class="absolute right-4 bottom-[96px] z-20 w-12 h-12 rounded-full bg-gray-900 text-white shadow-xl flex items-center justify-center active:scale-95 transition"
+            class="absolute z-20 w-10 h-10 rounded-full bg-gray-900/80 backdrop-blur text-white shadow-lg flex items-center justify-center active:scale-95 transition select-none"
             aria-label="常见问题"
+            style="left: 319px; top: 640px;"
         >
-            <i class="fa-solid fa-question text-lg"></i>
+            <i class="fa-solid fa-question text-[16px]"></i>
         </button>
 
         <!-- FAQ：常见问题抽屉（bottom sheet） -->
@@ -1732,6 +1733,161 @@
             floatingFaqEntry.classList.toggle('hidden', anyOverlayOpen);
         }
 
+        /* --- 浮窗拖拽（轻量、不遮挡）：拖拽 + 吸边 + 记忆位置 --- */
+        const FLOATING_FAQ_POS_KEY = 'floatingFaqPosV1';
+        let floatingFaqDragging = false;
+        let floatingFaqMoved = false;
+        let floatingFaqStart = null;
+        let floatingFaqPtrId = null;
+
+        function clamp(n, min, max) {
+            return Math.max(min, Math.min(max, n));
+        }
+
+        function getAppShellRect() {
+            const shell = document.querySelector('.app-shell');
+            return shell ? shell.getBoundingClientRect() : null;
+        }
+
+        function getFloatingFaqBounds(btnRect, shellRect) {
+            const margin = 8;
+            // 预留底部导航高度 + 安全区（大致值，原型足够）
+            const bottomReserved = 90;
+            const minX = margin;
+            const maxX = Math.max(minX, shellRect.width - btnRect.width - margin);
+            const minY = margin + 44; // 避开状态栏区域
+            const maxY = Math.max(minY, shellRect.height - bottomReserved - btnRect.height - margin);
+            return { minX, maxX, minY, maxY, margin };
+        }
+
+        function setFloatingFaqPos(x, y) {
+            if (!floatingFaqEntry) return;
+            floatingFaqEntry.style.left = `${x}px`;
+            floatingFaqEntry.style.top = `${y}px`;
+        }
+
+        function getFloatingFaqPos() {
+            if (!floatingFaqEntry) return { x: 0, y: 0 };
+            const x = parseFloat(floatingFaqEntry.style.left || '0') || 0;
+            const y = parseFloat(floatingFaqEntry.style.top || '0') || 0;
+            return { x, y };
+        }
+
+        function saveFloatingFaqPos(x, y) {
+            try { localStorage.setItem(FLOATING_FAQ_POS_KEY, JSON.stringify({ x, y })); } catch (_) {}
+        }
+
+        function loadFloatingFaqPos() {
+            try {
+                const raw = localStorage.getItem(FLOATING_FAQ_POS_KEY);
+                if (!raw) return null;
+                const v = JSON.parse(raw);
+                if (typeof v?.x !== 'number' || typeof v?.y !== 'number') return null;
+                return v;
+            } catch (_) {
+                return null;
+            }
+        }
+
+        function snapFloatingFaqToEdge() {
+            if (!floatingFaqEntry) return;
+            const shellRect = getAppShellRect();
+            if (!shellRect) return;
+
+            const btnRect = floatingFaqEntry.getBoundingClientRect();
+            const bounds = getFloatingFaqBounds(btnRect, shellRect);
+            const pos = getFloatingFaqPos();
+
+            const mid = (bounds.minX + bounds.maxX) / 2;
+            const snappedX = (pos.x >= mid) ? bounds.maxX : bounds.minX;
+            const snappedY = clamp(pos.y, bounds.minY, bounds.maxY);
+
+            floatingFaqEntry.classList.add('transition-transform');
+            setFloatingFaqPos(snappedX, snappedY);
+            saveFloatingFaqPos(snappedX, snappedY);
+            setTimeout(() => floatingFaqEntry.classList.remove('transition-transform'), 260);
+        }
+
+        function initFloatingFaqDrag() {
+            if (!floatingFaqEntry) return;
+
+            // 初始位置：优先用记忆位置；否则保持 HTML 中的默认值
+            const saved = loadFloatingFaqPos();
+            if (saved) {
+                setFloatingFaqPos(saved.x, saved.y);
+            }
+
+            const onDown = (e) => {
+                if (floatingFaqEntry.classList.contains('hidden')) return;
+                // 只处理主指针/单指
+                floatingFaqDragging = true;
+                floatingFaqMoved = false;
+                floatingFaqPtrId = e.pointerId;
+                floatingFaqEntry.setPointerCapture?.(floatingFaqPtrId);
+
+                const shellRect = getAppShellRect();
+                const btnRect = floatingFaqEntry.getBoundingClientRect();
+                if (!shellRect) return;
+
+                const pos = getFloatingFaqPos();
+                floatingFaqStart = {
+                    startClientX: e.clientX,
+                    startClientY: e.clientY,
+                    startX: pos.x,
+                    startY: pos.y,
+                    bounds: getFloatingFaqBounds(btnRect, shellRect),
+                    shellRect
+                };
+            };
+
+            const onMove = (e) => {
+                if (!floatingFaqDragging || !floatingFaqStart) return;
+                if (floatingFaqPtrId !== null && e.pointerId !== floatingFaqPtrId) return;
+
+                const dx = e.clientX - floatingFaqStart.startClientX;
+                const dy = e.clientY - floatingFaqStart.startClientY;
+                if (Math.abs(dx) + Math.abs(dy) > 6) floatingFaqMoved = true;
+
+                const nextX = clamp(floatingFaqStart.startX + dx, floatingFaqStart.bounds.minX, floatingFaqStart.bounds.maxX);
+                const nextY = clamp(floatingFaqStart.startY + dy, floatingFaqStart.bounds.minY, floatingFaqStart.bounds.maxY);
+                setFloatingFaqPos(nextX, nextY);
+            };
+
+            const onUp = () => {
+                if (!floatingFaqDragging) return;
+                floatingFaqDragging = false;
+                floatingFaqPtrId = null;
+                floatingFaqStart = null;
+                snapFloatingFaqToEdge();
+            };
+
+            // 用 pointer 统一鼠标+触摸
+            floatingFaqEntry.addEventListener('pointerdown', (e) => {
+                // 防止拖拽时触发滚动/选中
+                e.preventDefault();
+                onDown(e);
+            });
+            window.addEventListener('pointermove', onMove, { passive: true });
+            window.addEventListener('pointerup', onUp, { passive: true });
+            window.addEventListener('pointercancel', onUp, { passive: true });
+
+            // 阻止拖拽后误触发 click 打开 sheet
+            floatingFaqEntry.addEventListener('click', (e) => {
+                if (floatingFaqMoved) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    floatingFaqMoved = false;
+                    return;
+                }
+                openFaqSheet();
+            });
+
+            // 屏幕变化时重新吸边，避免跑出边界
+            window.addEventListener('resize', () => {
+                setTimeout(snapFloatingFaqToEdge, 0);
+            });
+        }
+
         // 兜底：轮询检测 overlay 状态变化（原型阶段足够）
         setInterval(updateFloatingFaqVisibility, 300);
 
@@ -1978,6 +2134,7 @@
             renderFaqTabs();
             renderFaqList();
             updateFloatingFaqVisibility();
+            initFloatingFaqDrag();
         });
 
         /* --- AIGC 特效成片交互逻辑 --- */
