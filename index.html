@@ -241,6 +241,21 @@
 
                     <!-- 模板与草稿内容区 -->
                     <div id="templateContent" class="space-y-4 pb-10">
+                        <!-- 比例切换：16:9 / 9:16 / 1:1 -->
+                        <div class="flex items-center justify-between">
+                            <p class="text-[12px] font-bold text-gray-500">比例</p>
+                            <div class="flex items-center gap-2 text-[12px]">
+                                <button id="templateAspect169" type="button" onclick="setTemplateAspect('16/9')" class="px-3 py-1.5 rounded-full bg-gray-900 text-white font-bold active:scale-95 transition">
+                                    16:9
+                                </button>
+                                <button id="templateAspect916" type="button" onclick="setTemplateAspect('9/16')" class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold active:scale-95 transition">
+                                    9:16
+                                </button>
+                                <button id="templateAspect11" type="button" onclick="setTemplateAspect('1/1')" class="px-3 py-1.5 rounded-full bg-gray-100 text-gray-600 font-bold active:scale-95 transition">
+                                    1:1
+                                </button>
+                            </div>
+                        </div>
                         <!-- 三大模板类目（原型）：进球集锦 / 高光瞬间 / 球星名场面复刻 -->
                         <div class="space-y-5">
                             <!-- 进球集锦类 -->
@@ -253,7 +268,7 @@
                                 </div>
                                 <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1">
                                     <button type="button" onclick="openAigcTemplateFlow('goal-highlight')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
-                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                        <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
                                             <img src="https://images.unsplash.com/photo-1546519638-68e109498ffc?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
                                             <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
                                         </div>
@@ -263,7 +278,7 @@
                                         </div>
                                     </button>
                                     <button type="button" onclick="openStandardTemplateFlow('goal-recap')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
-                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                        <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
                                             <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
                                             <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
                                         </div>
@@ -285,7 +300,7 @@
                                 </div>
                                 <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1">
                                     <button type="button" onclick="openAigcTemplateFlow('moment-slam')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
-                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                        <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
                                             <img src="https://images.unsplash.com/photo-1542652735873-fb2825bac6e2?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
                                             <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
                                         </div>
@@ -295,7 +310,7 @@
                                         </div>
                                     </button>
                                     <button type="button" onclick="openStandardTemplateFlow('moment-replay')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
-                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                        <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
                                             <img src="https://images.unsplash.com/photo-1515523110800-9415d13b84a8?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
                                             <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
                                         </div>
@@ -317,7 +332,7 @@
                                 </div>
                                 <div class="flex space-x-3 overflow-x-auto no-scrollbar -mx-1 px-1">
                                     <button type="button" onclick="openAigcTemplateFlow('star-imitation')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
-                                        <div class="relative w-full h-[96px] bg-gray-200">
+                                        <div class="template-cover relative w-full bg-gray-200" style="aspect-ratio: 16 / 9;">
                                             <img src="https://images.unsplash.com/photo-1505666287802-931dc83948e9?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板">
                                             <span class="absolute top-2 left-2 bg-white/90 text-orange-500 text-[10px] px-2 py-0.5 rounded-full font-bold">AI 模板</span>
                                         </div>
@@ -327,7 +342,7 @@
                                         </div>
                                     </button>
                                     <button type="button" onclick="openStandardTemplateFlow('star-poster')" class="min-w-[160px] w-[160px] rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden flex-shrink-0 active:scale-95 transition text-left">
-                                        <div class="relative w-full h-[96px] bg-gradient-to-br from-gray-200 to-gray-100">
+                                        <div class="template-cover relative w-full bg-gradient-to-br from-gray-200 to-gray-100" style="aspect-ratio: 16 / 9;">
                                             <img src="https://images.unsplash.com/photo-1519861531473-9200262188bf?ixlib=rb-1.2.1&auto=format&fit=crop&w=600&q=80" class="w-full h-full object-cover" alt="模板" loading="lazy">
                                             <span class="absolute top-2 left-2 bg-white/90 text-sky-600 text-[10px] px-2 py-0.5 rounded-full font-bold">模板</span>
                                         </div>
@@ -1346,6 +1361,33 @@
             if (typeof openSmartMergeFromMarkers === 'function') openSmartMergeFromMarkers();
         }
 
+        /* --- 模板比例切换：16:9 / 9:16 / 1:1 --- */
+        let currentTemplateAspect = '16/9';
+
+        function setTemplateAspect(aspect) {
+            currentTemplateAspect = aspect;
+
+            const btn169 = document.getElementById('templateAspect169');
+            const btn916 = document.getElementById('templateAspect916');
+            const btn11 = document.getElementById('templateAspect11');
+
+            const setBtnActive = (btn, active) => {
+                if (!btn) return;
+                btn.classList.toggle('bg-gray-900', active);
+                btn.classList.toggle('text-white', active);
+                btn.classList.toggle('bg-gray-100', !active);
+                btn.classList.toggle('text-gray-600', !active);
+            };
+
+            setBtnActive(btn169, aspect === '16/9');
+            setBtnActive(btn916, aspect === '9/16');
+            setBtnActive(btn11, aspect === '1/1');
+
+            document.querySelectorAll('.template-cover').forEach(el => {
+                el.style.aspectRatio = aspect.replace('/', ' / ');
+            });
+        }
+
         /* --- 首页 Tab 与查看全部交互 --- */
         function switchMainTab(tab) {
             const templateTab = document.getElementById('mainTabTemplate');
@@ -1514,6 +1556,11 @@
                 btn.classList.toggle('text-[#FF5028]', active);
                 btn.classList.toggle('text-gray-400', !active);
             });
+
+            // 模板默认比例：16:9
+            if (typeof setTemplateAspect === 'function') {
+                setTemplateAspect('16/9');
+            }
         });
 
         /* --- AIGC 特效成片交互逻辑 --- */
